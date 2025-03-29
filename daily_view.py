@@ -6,6 +6,9 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import QTableWidgetItem
 
+#import from project files
+from db_manager import add_task, remove_task, get_all_tasks, get_tasks_by_date
+
 class DayView(QWidget):
     def __init__(self, date: QDate):
         super().__init__()
@@ -29,7 +32,7 @@ class DayView(QWidget):
         layout.addLayout(top_bar)
 
         #ToDo List
-        self.todo_list = ToDoList()
+        self.todo_list = ToDoList(date)
         layout.addWidget(self.todo_list)
 
         #tasks table
@@ -53,12 +56,15 @@ class DayView(QWidget):
 
         self.table.clearContents()
 
+        self.todo_list.update_date_and_tasks(date)
+
     def close_daily_view(self):
         self.setVisible(False)
 
 class ToDoList(QWidget):
-    def __init__(self):
+    def __init__(self, date:QDate):
         super().__init__()
+        self.date = date.toString("yyy-MM-dd")
 
         tasks_layout = QVBoxLayout(self)
 
@@ -66,12 +72,21 @@ class ToDoList(QWidget):
         line_layout = QHBoxLayout()
         self.line_input = QLineEdit()
         self.line_input.setPlaceholderText("משימה חדשה")
+        #enables to add task on enter-click
+        self.line_input.returnPressed.connect(self.add_line)
+
         self.add_button = QPushButton("+")
+        self.add_button.setFixedWidth(25)
         self.add_button.clicked.connect(self.add_line)
+
+        self.delete_button = QPushButton("-")
+        self.delete_button.setFixedWidth(25)
+        self.delete_button.clicked.connect(self.delete_line)
 
         #organizing the layout
         line_layout.addWidget(self.line_input)
         line_layout.addWidget(self.add_button)
+        line_layout.addWidget(self.delete_button)
 
         tasks_layout.addLayout(line_layout)
 
@@ -79,13 +94,19 @@ class ToDoList(QWidget):
         self.tasks_list = QListWidget()
         tasks_layout.addWidget(self.tasks_list)
 
+        self.load_on_start()
+
     def add_line(self):
         line_text = self.line_input.text().strip()
         if line_text:
+            #add new task as a new record in the db
+            task_id = add_task(line_text, self.date)
+
             new_item = QListWidgetItem()
-            checkbox = QCheckBox(line_text)
+            new_item.setData(Qt.UserRole, task_id)
 
             #set alignment RTL
+            checkbox = QCheckBox(line_text)
             checkbox.setLayoutDirection(Qt.RightToLeft)
             checkbox.setStyleSheet("text-align: right")
             checkbox.setContentsMargins(0,0,10,0)
@@ -95,7 +116,37 @@ class ToDoList(QWidget):
             self.tasks_list.setItemWidget(new_item, checkbox)
             self.line_input.clear()
 
+    def delete_line(self):
+        curr_row = self.tasks_list.currentRow()
+        if curr_row >= 0:
+            curr_item = self.tasks_list.item(curr_row)
+            line_id = curr_item.data(Qt.UserRole)
 
+            #delete the record from the db
+            if (line_id) is not None:
+                remove_task(line_id)
+
+            self.tasks_list.takeItem(curr_row)
+
+    def load_on_start(self):
+        self.tasks_list.clear()
+        curr_date_tasks = get_tasks_by_date(self.date)
+
+        for line_id, text in curr_date_tasks:
+            item = QListWidgetItem()
+            item.setData(Qt.UserRole, line_id)
+
+            checkbox = QCheckBox(text)
+            checkbox.setLayoutDirection(Qt.RightToLeft)
+            checkbox.setStyleSheet("text-align: right")
+            checkbox.setContentsMargins(0,0,10,0)
+
+            self.tasks_list.addItem(item)
+            self.tasks_list.setItemWidget(item, checkbox)
+
+    def update_date_and_tasks(self, date: QDate):
+        self.date = date.toString("yyyy-MM-dd")
+        self.load_on_start()
 
         
 
