@@ -4,8 +4,11 @@ from PySide6.QtWidgets import (
                                 QHBoxLayout
                                )
 from PySide6.QtCore import QDate, Qt
+
+#files import
 from daily_view import DayView
 from weekly_view import WeeklyView
+from clock_view import ClockView
 import sys
 
 #inherting from QMainWindows
@@ -21,10 +24,18 @@ class MainWindow(QMainWindow):
 
         main_layout = QVBoxLayout(central_widget) #the verical main layout
 
+        #the clock and the toggle button layout
+        toggle_clock_layout = QHBoxLayout()
+        main_layout.addLayout(toggle_clock_layout)
+
         #define the toggle button to switch between weekly and monthly view
         self.toggle_button = QPushButton("Switch to Weekly View")
         self.toggle_button.clicked.connect(self.toggle_weekly_monthly)
-        main_layout.addWidget(self.toggle_button)
+
+        #clock layout
+        self.clock = ClockView()
+        toggle_clock_layout.addWidget(self.clock)
+        toggle_clock_layout.addWidget(self.toggle_button)
 
         #horizontal content
         content_layout = QHBoxLayout()
