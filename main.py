@@ -6,15 +6,16 @@ from PySide6.QtGui import QIcon
 
 #project files import
 from main_window import MainWindow
-from db_manager import init_db
+from db_manager import AppDB
 import sys
 
 if __name__ == "__main__":          
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon("assets/app_icon.ico"))
 
-    init_db()
+    db = AppDB()
+    db._init_db()
 
-    window = MainWindow()
+    window = MainWindow(db)
     window.show()
     sys.exit(app.exec())

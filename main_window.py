@@ -11,12 +11,15 @@ from PySide6.QtGui import QIcon
 from daily_view import DayView
 from weekly_view import WeeklyView
 from clock_view import ClockView
+from db_manager import AppDB
 import sys
 
 #inherting from QMainWindows
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, db: AppDB):
         super().__init__()
+        self.db = db
+
         self.setWindowTitle("Custom Planner")
         self.setWindowIcon(QIcon("assets/app_icon.ico"))
         self.setGeometry(100,100,1000,600) # x, y,width height
@@ -44,11 +47,12 @@ class MainWindow(QMainWindow):
         content_layout = QHBoxLayout()
         main_layout.addLayout(content_layout)
 
-        self.day_view = DayView(QDate.currentDate())
+        self.day_view = DayView(QDate.currentDate(), self.db)
         self.day_view.setVisible(False)
 
         #set the monthly calendar
         self.monthly_calendar = QCalendarWidget()
+        self.monthly_calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.monthly_calendar.clicked.connect(self.open_daily_view)
         self.monthly_calendar.setLayoutDirection(Qt.RightToLeft)
 
