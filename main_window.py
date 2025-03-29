@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (
                                 QHBoxLayout
                                )
 from PySide6.QtCore import QDate, Qt
+from PySide6.QtGui import QIcon
+
 
 #files import
 from daily_view import DayView
@@ -16,6 +18,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Custom Planner")
+        self.setWindowIcon(QIcon("assets/app_icon.ico"))
         self.setGeometry(100,100,1000,600) # x, y,width height
 
         #define the central layout
