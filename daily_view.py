@@ -4,7 +4,7 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
                                 QListWidget, QListWidgetItem, QCheckBox, 
                                 QLineEdit, QInputDialog,QAbstractItemView, QMenu
                                 )
-from PySide6.QtCore import QDate, Qt, QEvent
+from PySide6.QtCore import QDate, Qt, QEvent, Signal
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtGui import QBrush, QColor, QAction
 
@@ -12,6 +12,7 @@ from PySide6.QtGui import QBrush, QColor, QAction
 from db_manager import AppDB
 
 class DayView(QWidget):
+    daily_view_closed = Signal()
     def __init__(self, date: QDate, db:AppDB):
         super().__init__()
 
@@ -56,6 +57,7 @@ class DayView(QWidget):
 
     def close_daily_view(self):
         self.setVisible(False)
+        self.daily_view_closed.emit()
 
 class DailyCalendar(QWidget):
     def __init__(self, date:QDate, db:AppDB):
@@ -184,9 +186,25 @@ class DailyCalendar(QWidget):
         delete_block = QAction("delete", self)
         popup_menu.addAction(delete_block)
 
-        action = popup_menu.exec(self.table.viewport().mapToGlobal(position))
-        if action == delete_block:
+        colors = {"pink": "#FFD7EA",
+                  "blue":"#CCFFFF",
+                  "green": "#E5FFCC",
+                  "purple" : "#E5CCFF",
+                  "yellow": "#FFFFCC"}
+        color_change_actions = {}
+
+        for color, hex in colors.items():
+            action = QAction("change to "+ color, self)
+            popup_menu.addAction(action)
+            color_change_actions[action] = hex
+
+        selected_action = popup_menu.exec(self.table.viewport().mapToGlobal(position))
+
+        if selected_action == delete_block:
             self.delete_time_block(row, col)
+        elif (selected_action in color_change_actions):
+            hex = color_change_actions[selected_action]
+            self.change_block_color(row,col, hex)
 
     def delete_time_block(self, row,col):
         row_span = self.table.rowSpan(row,col)
@@ -202,6 +220,12 @@ class DailyCalendar(QWidget):
             self.table.setSpan(row,col,1,1)
             for r in range(row, row+row_span):
                 self.table.setItem(r,col,QTableWidgetItem())
+
+    def change_block_color(self, row:int, col:int, color: str):
+        event_to_change = self.table.item(row,col)
+        if (event_to_change):
+            event_to_change.setBackground(QColor(color))
+
 
     def load_events_by_date(self):
         events = self.db.get_calendar_events_by_date(self.date)
@@ -236,8 +260,7 @@ class DailyCalendar(QWidget):
             if self.table.rowSpan(row,0) > 1:
                 self.table.setSpan(row,0,1,1)
 
-        self._init_cells()
-        
+        self._init_cells()     
 
 class ToDoList(QWidget):
     def __init__(self, date:QDate, db:AppDB):

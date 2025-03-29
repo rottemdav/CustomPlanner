@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Custom Planner")
         self.setWindowIcon(QIcon("assets/app_icon.ico"))
-        self.setGeometry(100,100,1000,600) # x, y,width height
+        self.setGeometry(100,100,700,400) # x, y,width height
 
         #define the central layout
         central_widget = QWidget()
@@ -69,6 +69,9 @@ class MainWindow(QMainWindow):
         
         self.current_view = "month"
 
+        #handlers
+        self.day_view.daily_view_closed.connect(self.restore_size)
+
     def toggle_weekly_monthly(self):
         if self.current_view == "month":
             self.stack.setCurrentIndex(1)
@@ -80,5 +83,9 @@ class MainWindow(QMainWindow):
             self.current_view = "month"
              
     def open_daily_view(self, date: QDate):
+        self.resize(1100,400)
         self.day_view.update_date(date)
         self.day_view.setVisible(True)
+    
+    def restore_size(self):
+        self.resize(800,400)
