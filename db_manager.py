@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import date, datetime
 
 DB_FILE = "planner.db"
 
@@ -31,9 +32,13 @@ class AppDB:
             CREATE TABLE IF NOT EXISTS events_table (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_title TEXT NOT NULL,
-                event_date TEXT NOT NULL,
-                event_start_hour INTEGER NOT NULL,
-                event_end_hour INTEGER NOT NULL
+                desc TEXT,
+                event_start_datetime TEXT NOT NULL,
+                event_end_datetime INTEGER NOT NULL,
+                layer TEXT NOT NULL,
+                block_color TEXT,
+                file_path TEXT,
+                time_created TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -79,10 +84,19 @@ class AppDB:
 
     # =============== EVENT METHODS ===============
 
-    def add_calendar_event(self, event_title: str, event_date: str, event_start_hour: int, event_end_hour: int):
+    def add_calendar_event(self, event_title: str, event_date: str,
+                           event_start_time: int, event_end_time: int, layer:str,
+                           block_color:str, file_path:str, time_created: datetime):
+        time_created = datetime.now()
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO events_table (event_title, event_date, event_start_hour, event_end_hour) VALUES (?,?,?,?)", (event_title, event_date, event_start_hour, event_end_hour))
+        cursor.execute("""
+                       INSERT INTO events_table (event_title, event_date, 
+                                                 event_start_time, event_end_time, layer,
+                                                 block_color, file_path, time_created) 
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                       (event_title, event_date, event_start_time, event_end_time, "" , block_color, "" , time_created.isoformat())
+                        )
         event_id = cursor.lastrowid
         conn.commit()
         print(f"wrote event num {event_id} to the events_table.")

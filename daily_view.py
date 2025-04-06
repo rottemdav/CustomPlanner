@@ -226,7 +226,6 @@ class DailyCalendar(QWidget):
         if (event_to_change):
             event_to_change.setBackground(QColor(color))
 
-
     def load_events_by_date(self):
         events = self.db.get_calendar_events_by_date(self.date)
         for event_id, text, start_hour, end_hour in events:

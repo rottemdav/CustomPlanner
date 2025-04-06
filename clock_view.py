@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
-from PySide6.QtCore import QTimer, QTime, Qt
+from PySide6.QtCore import QTimer, QTime, Qt, QDateTime
 import sys
 
 class ClockView(QWidget):
@@ -24,5 +24,7 @@ class ClockView(QWidget):
         self.update_time()
 
     def update_time(self):
-        current_time = QTime.currentTime().toString("HH:mm:ss")
-        self.clock_label.setText(current_time)
+        now = QDateTime.currentDateTime()
+        formatted = now.toString("dd/MM/yyyy - HH:mm")
+#        current_time = QTime.currentTime().toString("HH:mm:ss")
+        self.clock_label.setText(formatted)
