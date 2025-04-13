@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         self.calendar_stack.addWidget(self.weekly_view) #index 1
         self.calendar_view = "month"
 
-        self.hw_track = HWTracking(QDate.currentDate())
+        self.hw_track = HWTracking(QDate.currentDate(), self.db)
 
         self.right_view_stack = QStackedWidget()
         self.right_view_stack.addWidget(self.calendar_stack) #index 0
@@ -110,12 +110,14 @@ class MainWindow(QMainWindow):
             print("Right View: Switched to HW tracking.")
             self.top_bar.hw_track.setText("Switch to Calendar")
             self.right_view = "hw_track"
+            self.resize(1200,700)
 
         elif self.right_view == "hw_track":
             self.right_view_stack.setCurrentIndex(0)
             print("Right View: Switched to Calendar.")
             self.top_bar.hw_track.setText("Switch to Homework Tracking")
             self.right_view = "calendar"
+            self.resize(600,700)
 
     def open_daily_view(self, date: QDate):
         self.day_view.update_date(date)
