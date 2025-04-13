@@ -9,7 +9,7 @@ from PySide6.QtGui import QIcon
 
 #classes import
 from daily_view import DayView
-from weekly_view import WeeklyView, WeeklyCalendarView
+from weekly_view import WeeklyCalendarView
 from clock_view import ClockView
 from db_manager import AppDB
 from menu_bar import TopBar
@@ -56,6 +56,9 @@ class MainWindow(QMainWindow):
 
         # set the weekly view
         self.weekly_view = WeeklyCalendarView(QDate.currentDate(), self.db)
+        self.weekly_view.calendar_table.setFocusPolicy(Qt.StrongFocus)
+        self.weekly_view.calendar_table.setMouseTracking(True)
+        self.weekly_view.calendar_table.setEnabled(True)
 
         # define the stack to switch between the views
         self.calendar_stack = QStackedWidget()
@@ -80,9 +83,15 @@ class MainWindow(QMainWindow):
 
     def toggle_weekly_monthly(self):
         if self.calendar_view == "month":
+            self.weekly_view.update_date_and_events(QDate.currentDate())
             self.calendar_stack.setCurrentIndex(1)
             self.top_bar.switch_action.setText("Switch to Month View")
             self.calendar_view = "week"
+
+            #force the events to match the weekly calendar widget
+            #self.weekly_view.calendar_table.setVisible(True)
+            self.weekly_view.setFocus()
+            self.weekly_view.calendar_table.setFocus()
         else:
             self.calendar_stack.setCurrentIndex(0)
             self.top_bar.switch_action.setText("Switch to Week View")
@@ -101,9 +110,6 @@ class MainWindow(QMainWindow):
             self.top_bar.hw_track.setText("Switch to Homework Tracking")
             self.right_view = "calendar"
 
-    
-
-             
     def open_daily_view(self, date: QDate):
         self.resize(1100,700)
         self.day_view.update_date(date)
@@ -111,3 +117,7 @@ class MainWindow(QMainWindow):
     
     def restore_size(self):
         self.resize(600,700)
+
+    def debug_method(self):
+        print("Checking if the weekly_view is visible...")
+        self.weekly_view.isVisible()

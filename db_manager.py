@@ -33,8 +33,9 @@ class AppDB:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_title TEXT NOT NULL,
                 desc TEXT,
-                event_start_datetime TEXT NOT NULL,
-                event_end_datetime INTEGER NOT NULL,
+                event_date TEXT NOT NULL,
+                event_start_time TEXT NOT NULL,
+                event_end_time TEXT NOT NULL,
                 layer TEXT NOT NULL,
                 block_color TEXT,
                 file_path TEXT,
@@ -91,7 +92,7 @@ class AppDB:
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("""
-                       INSERT INTO events_table (event_title, event_date, 
+                       INSERT INTO events_table (event_title,  event_date,
                                                  event_start_time, event_end_time, layer,
                                                  block_color, file_path, time_created) 
                        VALUES (?,?,?,?,?,?,?,?)""",
@@ -112,9 +113,16 @@ class AppDB:
         conn.close()
 
     def get_calendar_events_by_date(self, date: str):
+        
+        print(f"Getting calendar events by date {date}...")
+
         conn = self._connect()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, event_title, event_start_hour, event_end_hour FROM events_table WHERE event_date = ?", (date,))
+        cursor.execute("""SELECT id, event_title, event_date, event_start_time, event_end_time, layer, block_color, file_path, time_created
+                          FROM events_table 
+                          WHERE event_date = ? 
+                       """, (date,))
         events = cursor.fetchall()
         conn.close()
+        print(events)
         return events

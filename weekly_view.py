@@ -11,6 +11,7 @@ from db_manager import AppDB
 class WeeklyCalendarView(CalendarBase):
     def __init__(self , date: QDate, db:AppDB, rows: int = 24, parent: QWidget | None = None) -> None:
         week_start = date.addDays(-date.dayOfWeek()%7)
+        self.week_start_date = week_start
         headers: List[str] = [ 
             week_start.addDays(i).toString("ddd dd/MM")
             for i in range (7)
@@ -28,34 +29,35 @@ class WeeklyCalendarView(CalendarBase):
         self.calendar_table.horizontalHeader().setStretchLastSection(True)
         self.calendar_table.verticalHeader().setDefaultSectionSize(32)
 
-        layout = QVBoxLayout()
-        self.table = self.init_calendar_table_()
-        layout.addWidget(self.table)
+        #layout = QVBoxLayout()
+        #self.table = self.init_calendar_table_()
+        #layout.addWidget(self.table)
 
-class WeeklyView(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Weekly Planner")
+# #old version
+# class WeeklyView(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("Weekly Planner")
         
-        layout = QVBoxLayout(self)
+#         layout = QVBoxLayout(self)
 
-        #create the table
-        self.table = QTableWidget(5,7)
+#         #create the table
+#         self.table = QTableWidget(5,7)
 
-        #define layout to be right-to-left
-        self.table.setLayoutDirection(Qt.RightToLeft)
+#         #define layout to be right-to-left
+#         self.table.setLayoutDirection(Qt.RightToLeft)
 
-        self.table.setHorizontalHeaderLabels(["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"])
-        #self.table.setVerticalHeaderLabels(f"{h:02d}:00" for h in range(6,25))
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+#         self.table.setHorizontalHeaderLabels(["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"])
+#         #self.table.setVerticalHeaderLabels(f"{h:02d}:00" for h in range(6,25))
+#         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
-        self.table.verticalHeader().setDefaultAlignment(Qt.AlignRight | Qt.AlignVCenter)
+#         self.table.verticalHeader().setDefaultAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
 
-        for row in range(self.table.rowCount()):
-            for col in range(self.table.columnCount()):
-                item = QTableWidgetItem()
-                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.table.setItem(row, col, item)
+#         for row in range(self.table.rowCount()):
+#             for col in range(self.table.columnCount()):
+#                 item = QTableWidgetItem()
+#                 item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+#                 self.table.setItem(row, col, item)
 
-        layout.addWidget(self.table)
+#         layout.addWidget(self.table)
