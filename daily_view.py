@@ -135,7 +135,7 @@ class DailyCalendar(QWidget):
         time_range = f"{start_hour:02d}:00 - {end_hour:02d}:00"
         text, ok = QInputDialog.getText(self, "time block", f"add event for: {time_range}:")
         if ok and text.strip():
-            self.add_time_block(start_hour, end_hour, text)
+            self.add_time_block(start_hour, end_hour, text,)
 
         self.table.clearSelection()
 
@@ -154,7 +154,7 @@ class DailyCalendar(QWidget):
                 return
             
         #no overlap - create new item
-        event_id = self.db.add_calendar_event(text, self.date, s_hour, e_hour)
+        event_id = self.db.add_calendar_event(text, self.date, s_hour, e_hour,)
         new_item = QTableWidgetItem(text)
         new_item.setData(Qt.UserRole, event_id)
 
