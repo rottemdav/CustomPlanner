@@ -16,14 +16,25 @@ class AppDB:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
 
-        #tasks table
+        #personal tasks table
         cursor.execute( """
-            CREATE TABLE IF NOT EXISTS tasks_table (
+            CREATE TABLE IF NOT EXISTS personal_tasks_table (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_date TEXT,
                 task TEXT NOT NULL,
                 due_date TEXT,
-                status INT DEFAULT 0           
+                status INTEGER DEFAULT 0        
+            )    
+        """)
+
+        #hw tasks table
+        cursor.execute( """
+            CREATE TABLE IF NOT EXISTS hw_tasks_table (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task TEXT NOT NULL,
+                due_date TEXT,
+                status INTEGER DEFAULT 0,
+                course_num TEXT NOT NULL
             )    
         """)
 
@@ -46,12 +57,12 @@ class AppDB:
 
         conn.commit()
         conn.close()
-    # =============== TASK METHODS ===============
+    # =============== PERSONAL TASK METHODS ===============
 
     def add_task(self, text, task_date):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO tasks_table (task, task_date) VALUES (?,?)", (text, task_date))
+        cursor.execute("INSERT INTO personal_tasks_table (task, task_date) VALUES (?,?)", (text, task_date))
         task_id = cursor.lastrowid
         conn.commit()
         conn.close
@@ -61,14 +72,14 @@ class AppDB:
     def remove_task(self, task_id):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM tasks_table WHERE id = ?", (task_id,))
+        cursor.execute("DELETE FROM personal_tasks_table WHERE id = ?", (task_id,))
         conn.commit()
         conn.close()
 
-    def get_all_tasks():
+    def get_all_tasks(self):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, task FROM tasks_table WHERE status = 0")
+        cursor.execute("SELECT id, task FROM personal_tasks_table WHERE status = 0")
         tasks = cursor.fetchall()
         conn.close()
 
@@ -77,13 +88,26 @@ class AppDB:
     def get_tasks_by_date(self, date):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, task FROM tasks_table WHERE task_date = ? and status = 0", (date,))
+        cursor.execute("SELECT id, task FROM personal_tasks_table WHERE task_date = ? and status = 0", (date,))
         tasks = cursor.fetchall()
         conn.close()
 
         return tasks
 
-    # =============== EVENT METHODS ===============
+    # =============== HW TASKS METHODS ===============
+
+    def add_hw_task(self, text, due_date, course):
+        print(f" [LOG] Adding HW task in course {course} to the hw tasks table...")
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO hw_tasks_table (task, due_date, course_num) VALUES (?,?,?)", (text, due_date, course))
+        task_id = cursor.lastrowid
+        print(f" [LOG] HW task in course {course} was added to the hw tasks table with the id {task_id}")
+        conn.commit()
+        conn.close
+
+        return task_id
+    # =============== EVENT METHODS    ===============
 
     def add_calendar_event(self, event_title: str, event_date: str,
                            event_start_time: int, event_end_time: int, layer:str,

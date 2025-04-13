@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         self.calendar_stack.addWidget(self.weekly_view) #index 1
         self.calendar_view = "month"
 
-        self.hw_track = HWTracking(QDate.currentDate())
+        self.hw_track = HWTracking(QDate.currentDate(), self.db)
 
         self.right_view_stack = QStackedWidget()
         self.right_view_stack.addWidget(self.calendar_stack) #index 0

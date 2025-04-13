@@ -9,15 +9,19 @@ from PySide6.QtCore import QDate, Qt, QEvent, Signal
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtGui import QBrush, QColor, QAction
 
+from db_manager import AppDB
+from constants import COURSE_NUMS
+
 class HWTracking(QWidget):
-    def __init__(self, date:QDate):
+    def __init__(self, date:QDate, db:AppDB):
         super().__init__()
 
         self.date = date.toString("yyyy-MM-dd")
         self.setLayoutDirection(Qt.RightToLeft)
+        self.db = db
+
         main_layout = QVBoxLayout(self)
         
-
         #single line layout
         new_submission = QHBoxLayout()
         self.new_input = QLineEdit()
@@ -28,7 +32,7 @@ class HWTracking(QWidget):
 
         self.add_button = QPushButton("+")
         self.add_button.setFixedWidth(25)
-        #self.add_button.clicked.connect(self.add_line)
+        self.add_button.clicked.connect(self.add_to_list)
 
         self.delete_button = QPushButton("-")
         self.delete_button.setFixedWidth(25)
@@ -79,6 +83,40 @@ class HWTracking(QWidget):
         main_layout.addLayout(hw_list_layout)
         
     #    self.load_on_start()
+
+    def add_to_list(self):
+        print(f" [LOG] Adding new task to the hw tracking list...")
+        task_text = self.new_input.text().strip()
+        chosen_course = self.courses_list.currentIndex()
+        if not task_text or chosen_course < 0:
+            print(f" [DEBUG] No course chose or empty line. STOP.")
+            return
+
+        target_list = self.hw_list_widgets[chosen_course]
+        due_date = self.date_chooser.date().toString("yyyy-MM-dd")
+
+        course_name = self.courses_list.itemText(chosen_course)
+
+        #add to the db
+        task_id = self.db.add_hw_task(task_text, due_date, COURSE_NUMS[course_name])
+
+        #create the task and the widget
+        new_row = QListWidgetItem()
+        new_row.setData(Qt.UserRole, task_id)
+        new_item = QCheckBox(task_text)
+        #style
+        new_item.setLayoutDirection(Qt.RightToLeft)
+        new_item.setStyleSheet("text-align:right")
+        new_item.setContentsMargins(0,0,10,0)
+
+        #add to the list
+        target_list.addItem(new_row)
+        target_list.setItemWidget(new_row, new_item)
+
+        print(f" [LOG] Added task with id  {task_id} to the to-do list.")
+
+        self.new_input.clear()
+        
 
     # def add_line(self):
     #     line_text = self.line_input.text().strip()
