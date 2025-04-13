@@ -103,11 +103,11 @@ class HWTracking(QWidget):
         #create the task and the widget
         new_row = QListWidgetItem()
         new_row.setData(Qt.UserRole, task_id)
-        new_item = QCheckBox(task_text)
-        #style
-        new_item.setLayoutDirection(Qt.RightToLeft)
-        new_item.setStyleSheet("text-align:right")
-        new_item.setContentsMargins(0,0,10,0)
+
+        #formatting the information
+        formatted_date = QDate.fromString(due_date, "yyyy-MM-dd").toString("dd/MM/yyyy")
+
+        new_item = TaskItemWidget(task_text, formatted_date)
 
         #add to the list
         target_list.addItem(new_row)
@@ -116,27 +116,6 @@ class HWTracking(QWidget):
         print(f" [LOG] Added task with id  {task_id} to the to-do list.")
 
         self.new_input.clear()
-        
-
-    # def add_line(self):
-    #     line_text = self.line_input.text().strip()
-    #     if line_text:
-    #         #add new task as a new record in the db
-    #         task_id = self.db.add_task(line_text, self.date)
-
-    #         new_item = QListWidgetItem()
-    #         new_item.setData(Qt.UserRole, task_id)
-
-    #         #set alignment RTL
-    #         checkbox = QCheckBox(line_text)
-    #         checkbox.setLayoutDirection(Qt.RightToLeft)
-    #         checkbox.setStyleSheet("text-align: right")
-    #         checkbox.setContentsMargins(0,0,10,0)
-
-    #         #add new item
-    #         self.tasks_list.addItem(new_item)
-    #         self.tasks_list.setItemWidget(new_item, checkbox)
-    #         self.line_input.clear()
 
     # def delete_line(self):
     #     curr_row = self.tasks_list.currentRow()
@@ -170,4 +149,30 @@ class HWTracking(QWidget):
     #     self.date = date.toString("yyyy-MM-dd")
     #     self.load_on_start()
 
-        
+
+class TaskItemWidget(QWidget):
+    def __init__ (self, task_desc: str, due_date_str: str):
+        super().__init__()
+
+        #caculating days left
+        due_date = QDate.fromString(due_date_str, "dd/MM/yyyy")
+        today = QDate.currentDate()
+        days_remaining = today.daysTo(due_date)
+
+        task_layout = QHBoxLayout(self)
+        task_layout.setContentsMargins(10,0,10,0)
+
+        self.task_checkbox = QCheckBox(task_desc)
+        self.task_checkbox.setLayoutDirection(Qt.RightToLeft)
+
+        self.due_date = QLabel(f"{due_date_str}")
+        self.due_date.setAlignment(Qt.AlignCenter)
+        self.due_date.setStyleSheet("font-weight: bold; color: #000877")
+
+        remaining_text = f"{days_remaining} days left"
+        self.remaining_label = QLabel(remaining_text)
+        self.remaining_label.setAlignment(Qt.AlignLeft)
+
+        task_layout.addWidget(self.task_checkbox)
+        task_layout.addWidget(self.due_date)
+        task_layout.addWidget(self.remaining_label)
