@@ -7,7 +7,7 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
 from PySide6.QtCore import QDate, Qt, QEvent, Signal
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtGui import QBrush, QColor, QAction
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 #import from project files
 from db_manager import AppDB
@@ -34,7 +34,6 @@ class CalendarBase(QWidget):
         #install event filter
         self.calendar_table.viewport().installEventFilter(self)
         self.calendar_table.cellDoubleClicked.connect(self.handle_double_click)
-
 
     def init_calendar_table_(self) -> QTableWidget:
         self.calendar_table = QTableWidget(self.rows_num, self.cols_num)
@@ -258,10 +257,51 @@ class CalendarBase(QWidget):
                 for r in range(s_row +1, s_row + dur):
                     self.calendar_table.setItem(r, 0, QTableWidgetItem(""))
 
-    def update_date_and_events(self, date:QDate):
-        self.date = date.toString("yyyy-MM-dd")
+    def load_event_by_week(self, week_start_date):
+        week_start = week_start_date.toPython()
+        week_end = week_start + timedelta(days = 7)
+
+        events = self.db.get_calendar_events_by_week(start_date = week_start.isoformat(),
+                                                    end_date=week_end.isoformat()
+                                                    )
+
+        for event_id, text, event_date, start_str, end_str, color in events:
+            start_dt = datetime.fromisoformat(start_str)
+            end_dt = datetime.fromisoformat(end_str)
+
+            s_row = start_dt.hour - self.start_hour
+            dur = end_dt.hour - start_dt.hour
+
+            day_offset = (start_dt.date() - week_start).days
+            if not (0 <= day_offset <= 6):
+                print(f"[DEBUG] out of range event on {start_dt.date()}")
+                continue
+
+            #create new item in the widget
+            new_item = QTableWidgetItem(text)
+            new_item.setData(Qt.UserRole, event_id)
+
+            #style
+            new_item.setTextAlignment(Qt.AlignCenter)
+            new_item.setBackground(QBrush(QColor("#CCE5FF")))
+
+            self.calendar_table.setItem(s_row, day_offset, new_item)
+
+            if dur > 1:
+                self.calendar_table.setSpan(s_row, day_offset, dur, 1)
+                for r in range(s_row +1, s_row + dur):
+                    self.calendar_table.setItem(r, day_offset, QTableWidgetItem(""))
+
+
+    def update_date_and_events(self, date:QDate, mode:str):
         self.clear_calendar()
-        self.load_events_by_date()
+        self.date = date.toString("yyyy-MM-dd")
+        if (mode == "week"):
+            week_start = date.addDays(-date.dayOfWeek() % 7 )
+            self.load_event_by_week(week_start)
+        
+        else:
+            self.load_events_by_date()
 
     def clear_calendar(self):
         self.calendar_table.clearContents()

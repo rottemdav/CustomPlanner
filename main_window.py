@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
 
     def toggle_weekly_monthly(self):
         if self.calendar_view == "month":
-            self.weekly_view.update_date_and_events(QDate.currentDate())
+            self.weekly_view.update_date_and_events(QDate.currentDate(), "week")
             self.calendar_stack.setCurrentIndex(1)
             self.top_bar.switch_action.setText("Switch to Month View")
             self.calendar_view = "week"

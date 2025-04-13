@@ -126,3 +126,19 @@ class AppDB:
         conn.close()
         print(events)
         return events
+    
+    def get_calendar_events_by_week(self, start_date: str, end_date: str):
+        
+        print(f"Getting calendar events by date {date}...")
+
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("""SELECT id, event_title, event_date, event_start_time, event_end_time, block_color
+                          FROM events_table 
+                          WHERE event_date >=  ? AND event_date < ?
+                       """, (start_date, end_date))
+        events = cursor.fetchall()
+        conn.close()
+        print(events)
+        return events
+
