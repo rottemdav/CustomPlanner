@@ -107,6 +107,28 @@ class AppDB:
         conn.close
 
         return task_id
+    
+    def remove_task(self, task_id):
+        print(f" [LOG] Deleting HW task {task_id} from the hw tasks table...")
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM personal_tasks_table WHERE id = ?", (task_id,))
+        print(f" [LOG] Deleted HW task {task_id} from the hw tasks table.")
+        conn.commit()
+        conn.close()
+
+    def get_all_hw_tasks(self):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute("""
+                        SELECT  * 
+                        FROM hw_tasks_table
+                        """)
+        tasks = cursor.fetchall()
+        conn.close()
+        print(tasks)
+        return tasks
+
     # =============== EVENT METHODS    ===============
 
     def add_calendar_event(self, event_title: str, event_date: str,
