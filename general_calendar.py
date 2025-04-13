@@ -35,6 +35,8 @@ class CalendarBase(QWidget):
         self.calendar_table.viewport().installEventFilter(self)
         self.calendar_table.cellDoubleClicked.connect(self.handle_double_click)
 
+        self.col_width = self.calendar_table.columnWidth(0)
+
     def init_calendar_table_(self) -> QTableWidget:
         self.calendar_table = QTableWidget(self.rows_num, self.cols_num)
         self.calendar_table.setLayoutDirection(Qt.RightToLeft)
@@ -45,7 +47,7 @@ class CalendarBase(QWidget):
         self.calendar_table.verticalHeader().setDefaultAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         self.calendar_table.setSelectionMode(QAbstractItemView.ContiguousSelection)
-        self.calendar_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.calendar_table.setSelectionBehavior(QAbstractItemView.SelectItems)
 
         #handlers
         self.calendar_table.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -99,7 +101,7 @@ class CalendarBase(QWidget):
             return
         
         rows = [index.row() for index in idxs]
-        cols = [index.row() for index in idxs]
+        cols = [index.column() for index in idxs]
         
         top_row = min(rows)
         bottom_row = max(rows)
@@ -124,7 +126,7 @@ class CalendarBase(QWidget):
         time_range = f"{start_dt.strftime('%d/%m/%Y %H/%M')} - {end_dt.strftime('%H/%M')}"
         text, ok = QInputDialog.getText(self, "time block", f"add event for: {time_range}:")
         if ok and text.strip():
-            self.add_time_block(start_dt, end_dt, text)
+            self.add_time_block(start_dt, end_dt, text, "multi-select")
 
         self.calendar_table.clearSelection()
 
@@ -291,7 +293,6 @@ class CalendarBase(QWidget):
                 self.calendar_table.setSpan(s_row, day_offset, dur, 1)
                 for r in range(s_row +1, s_row + dur):
                     self.calendar_table.setItem(r, day_offset, QTableWidgetItem(""))
-
 
     def update_date_and_events(self, date:QDate, mode:str):
         self.clear_calendar()

@@ -37,8 +37,8 @@ class MainWindow(QMainWindow):
 
         content_layout = QHBoxLayout()
 
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
+        self.right_widget = QWidget()
+        right_layout = QVBoxLayout(self.right_widget)
 
         self.day_view = DayView(QDate.currentDate(), self.db)
         self.day_view.setVisible(False)
@@ -74,9 +74,9 @@ class MainWindow(QMainWindow):
         self.right_view = "calendar"
 
         right_layout.addWidget(self.right_view_stack, 1)
-        content_layout.addWidget(right_widget, 2)     
+        content_layout.addWidget(self.right_widget, 2)     
 
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(content_layout, stretch = 1)
 
         #handlers
         self.day_view.daily_view_closed.connect(self.restore_size)
@@ -92,10 +92,17 @@ class MainWindow(QMainWindow):
             #self.weekly_view.calendar_table.setVisible(True)
             self.weekly_view.setFocus()
             self.weekly_view.calendar_table.setFocus()
+            self.right_widget.resize((self.weekly_view.col_width * (self.weekly_view.cols_num+1)) + 11, 700)
+            print(f"calculated width: {self.weekly_view.col_width * self.weekly_view.cols_num}, col_width: {self.weekly_view.col_width}, col_num: {self.weekly_view.cols_num}")
         else:
             self.calendar_stack.setCurrentIndex(0)
             self.top_bar.switch_action.setText("Switch to Week View")
             self.calendar_view = "month"
+            self.right_widget.resize(600, 700)
+
+        self.resize(self.right_widget.width(), 700)
+
+
 
     def switch_to_hw_track(self):
         if self.right_view == "calendar":
@@ -111,9 +118,10 @@ class MainWindow(QMainWindow):
             self.right_view = "calendar"
 
     def open_daily_view(self, date: QDate):
-        self.resize(1100,700)
         self.day_view.update_date(date)
         self.day_view.setVisible(True)
+
+        self.resize(self.right_widget.width() + self.day_view.width(), 700)
     
     def restore_size(self):
         self.resize(600,700)
