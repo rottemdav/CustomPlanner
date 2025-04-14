@@ -13,7 +13,8 @@ from datetime import datetime, time, timedelta
 from db_manager import AppDB
 
 class CalendarBase(QWidget):
-    def __init__(self, date:QDate, db:AppDB, rows: int, cols: int , headers: list[str], parent=None):
+    def __init__(self, date:QDate, db:AppDB, rows: int, cols: int ,
+                 headers: list[str], layers: list[str], parent=None):
         if (len(headers) != cols):
             return
         
@@ -23,13 +24,15 @@ class CalendarBase(QWidget):
         self.db = db
         self.rows_num = rows
         self.cols_num = cols
+        self.layers = layers
         self.headers = headers
         self.start_hour = rows % 24
 
         self.calendar_table = self.init_calendar_table_()
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.calendar_table)
+        #self.main_layout = QVBoxLayout()
+        #self.setLayout(self.main_layout)
+        #self.main_layout.addWidget(self.calendar_table)
 
         #install event filter
         self.calendar_table.viewport().installEventFilter(self)
@@ -235,7 +238,8 @@ class CalendarBase(QWidget):
         if (event_to_change):
             event_to_change.setBackground(QColor(color))
 
-# -----------  default opening functions  ----------
+# =================  default opening functions  ============
+
     def load_events_by_date(self):
         events = self.db.get_calendar_events_by_date(self.date)
         for event_id, text, _, start_hour, end_hour, _, _, _, _ in events:
@@ -259,12 +263,13 @@ class CalendarBase(QWidget):
                 for r in range(s_row +1, s_row + dur):
                     self.calendar_table.setItem(r, 0, QTableWidgetItem(""))
 
-    def load_event_by_week(self, week_start_date):
+    def load_event_by_week(self, week_start_date, layer_filter=None):
         week_start = week_start_date.toPython()
         week_end = week_start + timedelta(days = 7)
 
         events = self.db.get_calendar_events_by_week(start_date = week_start.isoformat(),
-                                                    end_date=week_end.isoformat()
+                                                    end_date=week_end.isoformat(),
+                                                    layer = layer_filter
                                                     )
 
         for event_id, text, event_date, start_str, end_str, color in events:
@@ -294,12 +299,12 @@ class CalendarBase(QWidget):
                 for r in range(s_row +1, s_row + dur):
                     self.calendar_table.setItem(r, day_offset, QTableWidgetItem(""))
 
-    def update_date_and_events(self, date:QDate, mode:str):
+    def update_date_and_events(self, date:QDate, mode:str, layer:str):
         self.clear_calendar()
         self.date = date.toString("yyyy-MM-dd")
         if (mode == "week"):
             week_start = date.addDays(-date.dayOfWeek() % 7 )
-            self.load_event_by_week(week_start)
+            self.load_event_by_week(week_start, layer)
         
         else:
             self.load_events_by_date()
