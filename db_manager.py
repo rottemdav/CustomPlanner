@@ -97,23 +97,23 @@ class AppDB:
     # =============== HW TASKS METHODS ===============
 
     def add_hw_task(self, text, due_date, course):
-        print(f" [LOG] Adding HW task in course {course} to the hw tasks table...")
+        print(f" [DB-LOG] Adding HW task in course {course} to the hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO hw_tasks_table (task, due_date, course_num) VALUES (?,?,?)", (text, due_date, course))
         task_id = cursor.lastrowid
-        print(f" [LOG] HW task in course {course} was added to the hw tasks table with the id {task_id}")
+        print(f" [DB-LOG] HW task in course {course} was added to the hw tasks table with the id {task_id}")
         conn.commit()
         conn.close
 
         return task_id
     
     def remove_task(self, task_id):
-        print(f" [LOG] Deleting HW task {task_id} from the hw tasks table...")
+        print(f" [DB-LOG] Deleting HW task {task_id} from the hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM personal_tasks_table WHERE id = ?", (task_id,))
-        print(f" [LOG] Deleted HW task {task_id} from the hw tasks table.")
+        print(f" [DB-LOG] Deleted HW task {task_id} from the hw tasks table.")
         conn.commit()
         conn.close()
 
@@ -128,6 +128,16 @@ class AppDB:
         conn.close()
         print(tasks)
         return tasks
+
+    def update_hw_task_status(self, task_id, is_checked):
+        print(f" [DB-LOG] Updating HW task {task_id} status in hw tasks table...")
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE hw_tasks_table SET status = ? WHERE id =?", (is_checked, task_id))
+        conn.commit()
+        conn.close()
+        print(f" [DB-LOG] Updated task {task_id} to status {is_checked}")
+
 
     # =============== EVENT METHODS    ===============
 

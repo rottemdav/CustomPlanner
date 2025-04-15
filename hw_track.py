@@ -30,19 +30,20 @@ class HWTracking(QWidget):
         #enables to add task on enter-click
         #self.new_input.returnPressed.connect(self.add_line)
 
+        #add task button
         self.add_button = QPushButton("+")
         self.add_button.setFixedWidth(25)
         self.add_button.clicked.connect(self.add_to_list)
 
+        #delte task button
         self.delete_button = QPushButton("-")
         self.delete_button.setFixedWidth(25)
         self.delete_button.clicked.connect(self.delete_task)
 
+        #courses list
         self.courses_list = QComboBox()
         self.courses_list.addItems(["אותות אקראיים", "ענ\"ת", "מערכות לומדות","מעגלים אלקטרוניים","מל\"מ"])
         self.courses_list.setCurrentIndex(-1)
-
-
 
         self.date_chooser = QDateEdit()
         self.date_chooser.setCalendarPopup(True)
@@ -51,7 +52,6 @@ class HWTracking(QWidget):
         self.date_chooser.setAlignment(Qt.AlignRight)
         self.date_chooser.calendarWidget().setLayoutDirection(Qt.RightToLeft)
         self.date_chooser.calendarWidget().setFirstDayOfWeek(Qt.Sunday)
-
 
         #organizing the layout
         new_submission.addWidget(self.new_input)
@@ -64,6 +64,7 @@ class HWTracking(QWidget):
 
         self.hw_list_widgets = []
 
+        #the main hw tracking lists
         hw_list_layout = QGridLayout()
         #create the hw grid
         for i in range(2):
@@ -76,6 +77,7 @@ class HWTracking(QWidget):
                 course_name = self.courses_list.itemText((3*(i))+j)
                 course_label = QLabel(course_name)
 
+                #individual list layout and widget
                 col_layout = QVBoxLayout()
                 col_layout.addWidget(course_label, alignment=Qt.AlignCenter)
                 col_layout.addWidget(course_hw_list)
@@ -110,7 +112,7 @@ class HWTracking(QWidget):
         new_row = QListWidgetItem()
         new_row.setData(Qt.UserRole, task_id)
 
-        new_item = TaskItemWidget(task_text, due_date)
+        new_item = TaskItemWidget(task_text, due_date, self.db, task_id)
 
         #add to the list
         target_list.addItem(new_row)
@@ -163,7 +165,7 @@ class HWTracking(QWidget):
 
             #build tasks list
             item = QListWidgetItem()
-            task_widget = TaskItemWidget(task_desc, due_date_str)
+            task_widget = TaskItemWidget(task_desc, due_date_str, self.db, task_id, status)
             item.setData(Qt.UserRole, task_id)
 
             target_list = self.hw_list_widgets[list_index]
@@ -179,8 +181,11 @@ class HWTracking(QWidget):
 
 class TaskItemWidget(QWidget):
     clicked = Signal()
-    def __init__ (self, task_desc: str, due_date_str: str):
+    def __init__ (self, task_desc: str, due_date_str: str, db, task_id: int, status:int):
+        
         super().__init__()
+        self.db = db
+        self.task_id = task_id
 
         #caculating days left
         due_date = QDate.fromString(due_date_str, "yyyy-MM-dd")
@@ -192,7 +197,12 @@ class TaskItemWidget(QWidget):
 
         self.task_checkbox = QCheckBox(task_desc)
         self.task_checkbox.setLayoutDirection(Qt.RightToLeft)
-        self.task_checkbox.clicked.connect(self.select_item)  
+        self.task_checkbox.clicked.connect(self.select_item)
+        self.task_checkbox.stateChanged.connect(self.task_checked)
+        #set the checkbox with the current status of the task
+        self.task_checkbox.setChecked(status == 1)
+        if status == 1:
+            self.setStyleSheet("text-decoration: line-through; color: gray")
 
         formatted_date = QDate.fromString(due_date_str, "yyyy-MM-dd").toString("dd/MM/yyyy")
 
@@ -216,4 +226,24 @@ class TaskItemWidget(QWidget):
             list_widget = parent
             index = list_widget.indexAt(self.mapTo(list_widget, self.rect().center()))
             if index.isValid():
-                list_widget.setCurrentRow(index.row())
+                #list_widget.setCurrentRow(index.row())
+                item = list_widget.item(index.row())
+                return item.data(Qt.UserRole) #task_id
+            
+        return None
+
+    def task_checked(self, state):
+        is_checked = state == Qt.Checked.value
+        
+        print(f" [LOG] Task status changed: {'checked' if is_checked else 'unchecked'}")
+
+        if self.task_id is not None:
+            print(f" [LOG] Changing status in the hw tasks table from {'unchecked' if not is_checked else 'checked'} to {'checked' if is_checked else 'unchecked'}")
+            self.db.update_hw_task_status(self.task_id, int(is_checked))
+            if is_checked:
+                self.setStyleSheet("text-decoration: line-through; color: gray")
+            else:
+                self.setStyleSheet("")
+
+        
+

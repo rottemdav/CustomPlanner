@@ -30,10 +30,6 @@ class CalendarBase(QWidget):
 
         self.calendar_table = self.init_calendar_table_()
 
-        #self.main_layout = QVBoxLayout()
-        #self.setLayout(self.main_layout)
-        #self.main_layout.addWidget(self.calendar_table)
-
         #install event filter
         self.calendar_table.viewport().installEventFilter(self)
         self.calendar_table.cellDoubleClicked.connect(self.handle_double_click)
