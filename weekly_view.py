@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHBoxLayout, QTableWidget
 from PySide6.QtCore import Qt, QDate
 from datetime import datetime, time
 from typing import List
@@ -33,6 +33,7 @@ class WeeklyCalendarView(CalendarBase):
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
 
+
         self.layers_layout = QHBoxLayout()
         self.layers_layout.setAlignment(Qt.AlignCenter)
         self.layers_buttons = []
@@ -44,9 +45,11 @@ class WeeklyCalendarView(CalendarBase):
             button.stateChanged.connect(self.reload_after_selection_change)
             self.layers_layout.addWidget(button)
             self.layers_buttons.append(button)
-            
 
-        
+        self.calendar_table.scrollToItem(
+            self.calendar_table.item(8,0),
+            QTableWidget.PositionAtTop
+        )
 
     #style
         self.calendar_table.horizontalHeader().setStretchLastSection(True)

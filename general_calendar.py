@@ -12,6 +12,7 @@ from datetime import datetime, time, timedelta
 
 #import from project files
 from db_manager import AppDB
+from constants import COLORS_PALETTE, LAYERS_COLORS
 
 class CalendarBase(QWidget):
     def __init__(self, date:QDate, db:AppDB, rows: int, cols: int ,
@@ -160,7 +161,7 @@ class CalendarBase(QWidget):
             event_start_time = start_dt, 
             event_end_time = end_dt,
             layer=layer,
-            block_color = "#E0E0E0" if layer == "אישי" else "#E5FFCC",
+            block_color = COLORS_PALETTE[LAYERS_COLORS[layer]],
             file_path="",
             time_created=datetime.now()
             )
@@ -173,7 +174,7 @@ class CalendarBase(QWidget):
 
         #style
         new_item.setTextAlignment(Qt.AlignCenter)
-        new_item.setBackground(QBrush(QColor("#E0E0E0")))
+        new_item.setBackground(QBrush(QColor( COLORS_PALETTE[LAYERS_COLORS[layer]] )))
 
         #place data
         self.calendar_table.setItem(s_row, weekday, new_item)
@@ -292,7 +293,7 @@ class CalendarBase(QWidget):
 
             #style
             new_item.setTextAlignment(Qt.AlignCenter)
-            new_item.setBackground(QBrush(QColor("#CCE5FF")))
+            new_item.setBackground(QBrush(QColor(color)))
 
             self.calendar_table.setItem(s_row, day_offset, new_item)
 
