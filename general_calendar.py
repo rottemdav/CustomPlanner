@@ -2,7 +2,8 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
                                 QTableWidget, QHeaderView, QPushButton,
                                 QTableWidgetItem, QHBoxLayout, 
                                 QListWidget, QListWidgetItem, QCheckBox, 
-                                QLineEdit, QInputDialog,QAbstractItemView, QMenu
+                                QLineEdit, QInputDialog,QAbstractItemView, QMenu,
+                                QDialog, QComboBox
                                 )
 from PySide6.QtCore import QDate, Qt, QEvent, Signal
 from PySide6.QtWidgets import QTableWidgetItem
@@ -89,10 +90,11 @@ class CalendarBase(QWidget):
         start_dt = datetime.combine(fulldate, time(hour=start_hour))
         end_dt = datetime.combine(fulldate, time(hour=end_hour))
 
-        text, ok = QInputDialog.getText(self, "time block", f"add event for: {time_label}:")
-        if ok and text.strip():
-            self.add_time_block(start_dt, end_dt, text, "double click")
-            #new_item = QTableWidgetItem(text)
+        create_dialog = newEventDialog(time_label, self)
+        if create_dialog.exec() == QDialog.Accepted:
+            title,layer = create_dialog.get_data()
+            if title:
+                self.add_time_block(start_dt, end_dt, title, "double_click", layer)
 
     def handle_range_selection(self):
         idxs = self.calendar_table.selectedIndexes()
@@ -123,13 +125,16 @@ class CalendarBase(QWidget):
         end_dt = datetime.combine(fulldate, time(hour=end_hour))
 
         time_range = f"{start_dt.strftime('%d/%m/%Y %H/%M')} - {end_dt.strftime('%H/%M')}"
-        text, ok = QInputDialog.getText(self, "time block", f"add event for: {time_range}:")
-        if ok and text.strip():
-            self.add_time_block(start_dt, end_dt, text, "multi-select")
+
+        create_dialog = newEventDialog(time_range, self)
+        if create_dialog.exec() == QDialog.Accepted:
+            title,layer = create_dialog.get_data()
+            if title:
+                self.add_time_block(start_dt, end_dt, title, "multi-select", layer)
 
         self.calendar_table.clearSelection()
 
-    def add_time_block(self, start_dt: datetime, end_dt: datetime, text: str, action: str):
+    def add_time_block(self, start_dt: datetime, end_dt: datetime, text: str, action: str, layer):
         print(f"[DEBUG] add_time_block triggered: start_time: {start_dt} end_time: {end_dt}")
         s_hour = start_dt.hour
         e_hour = end_dt.hour
@@ -154,8 +159,8 @@ class CalendarBase(QWidget):
             event_date=start_dt.date().isoformat(), 
             event_start_time = start_dt, 
             event_end_time = end_dt,
-            layer="",
-            block_color = "#E0E0E0",
+            layer=layer,
+            block_color = "#E0E0E0" if layer == "אישי" else "#E5FFCC",
             file_path="",
             time_created=datetime.now()
             )
@@ -262,6 +267,7 @@ class CalendarBase(QWidget):
     def load_event_by_week(self, week_start_date, layer_filter=None):
         week_start = week_start_date.toPython()
         week_end = week_start + timedelta(days = 7)
+        print(f" [load_event_by_date] layer_filer: {layer_filter}")
 
         events = self.db.get_calendar_events_by_week(start_date = week_start.isoformat(),
                                                     end_date=week_end.isoformat(),
@@ -299,8 +305,9 @@ class CalendarBase(QWidget):
         self.clear_calendar()
         self.date = date.toString("yyyy-MM-dd")
         if (mode == "week"):
-            week_start = date.addDays(-date.dayOfWeek() % 7 )
+            week_start = date.addDays(-(date.dayOfWeek()% 7 )) 
             self.load_event_by_week(week_start, layer)
+            print(f"layers selected: {layer}")
         
         else:
             self.load_events_by_date()
@@ -309,7 +316,44 @@ class CalendarBase(QWidget):
         self.calendar_table.clearContents()
 
         for row in range(self.calendar_table.rowCount()):
-            if self.calendar_table.rowSpan(row,0) > 1:
-                self.calendar_table.setSpan(row,0,1,1)
+            for col in range(self.calendar_table.columnCount()):
+                if self.calendar_table.rowSpan(row,col) > 1:
+                    self.calendar_table.setSpan(row,col,1,1)
 
         #self._init_cells()     
+
+class newEventDialog(QDialog):
+    def __init__(self, time_str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("אירוע חדש")
+        
+        layout = QVBoxLayout(self)
+
+        #event title
+        self.event_title = QLineEdit()
+        self.event_title.setPlaceholderText("הוספת שם")
+        
+        layout.addWidget(QLabel(f"זמן: {time_str}"))
+        layout.addWidget(self.event_title)
+
+        self.layer_select = QComboBox()
+        self.layer_select.addItems(["אישי","לימודים"])
+        
+        layout.addWidget(QLabel("קטגוריה:"))
+        layout.addWidget(self.layer_select)
+
+        button_layout = QHBoxLayout()
+        self.ok_button = QPushButton("יצירה")
+        self.ok_button.clicked.connect(self.accept)
+
+        self.cancel_button = QPushButton("ביטול")
+        self.cancel_button.clicked.connect(self.reject)
+
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+
+        layout.addLayout(button_layout)
+
+    def get_data(self):
+        return self.event_title.text().strip(), self.layer_select.currentText()
+        

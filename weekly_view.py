@@ -40,12 +40,13 @@ class WeeklyCalendarView(CalendarBase):
         for layer_name in self.layers:
             button = QCheckBox(layer_name)
             button.setLayoutDirection(Qt.RightToLeft)
+            button.setChecked(True)
             button.stateChanged.connect(self.reload_after_selection_change)
             self.layers_layout.addWidget(button)
             self.layers_buttons.append(button)
             
 
-        self.selected_layers = []
+        
 
     #style
         self.calendar_table.horizontalHeader().setStretchLastSection(True)
@@ -56,7 +57,12 @@ class WeeklyCalendarView(CalendarBase):
 
     def reload_after_selection_change(self):
         print(" [LOG] Selection Changed. Fecthing events by current checked layers..")
+            
+        self.clear_calendar()
         self.selected_layers = [layer.text() for layer in self.layers_buttons if layer.isChecked()]
+
+        print(f" [LOG] Selected layers: {self.selected_layers}")
+
         if not self.selected_layers:
             return
         

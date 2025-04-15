@@ -152,7 +152,7 @@ class AppDB:
                                                  event_start_time, event_end_time, layer,
                                                  block_color, file_path, time_created) 
                        VALUES (?,?,?,?,?,?,?,?)""",
-                       (event_title, event_date, event_start_time, event_end_time, "" , block_color, "" , time_created.isoformat())
+                       (event_title, event_date, event_start_time, event_end_time, layer , block_color, "" , time_created.isoformat())
                         )
         event_id = cursor.lastrowid
         conn.commit()
@@ -185,7 +185,7 @@ class AppDB:
     
     def get_calendar_events_by_week(self, start_date: str, end_date: str,layer:str):
         
-        print(f"Getting calendar events by date {date}...")
+        print(f" [get_calendar_events_by_week]: Getting calendar events by date {start_date}...")
 
         conn = self._connect()
         cursor = conn.cursor()
