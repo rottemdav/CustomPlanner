@@ -112,7 +112,7 @@ class AppDB:
         print(f" [DB-LOG] Deleting HW task {task_id} from the hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM personal_tasks_table WHERE id = ?", (task_id,))
+        cursor.execute("DELETE FROM hw_tasks_table WHERE id = ?", (task_id,))
         print(f" [DB-LOG] Deleted HW task {task_id} from the hw tasks table.")
         conn.commit()
         conn.close()

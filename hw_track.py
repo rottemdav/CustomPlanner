@@ -112,7 +112,7 @@ class HWTracking(QWidget):
         new_row = QListWidgetItem()
         new_row.setData(Qt.UserRole, task_id)
 
-        new_item = TaskItemWidget(task_text, due_date, self.db, task_id)
+        new_item = TaskItemWidget(task_text, due_date, self.db, task_id, status=0)
 
         #add to the list
         target_list.addItem(new_row)
