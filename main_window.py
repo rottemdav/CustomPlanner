@@ -14,6 +14,7 @@ from clock_view import ClockView
 from db_manager import AppDB
 from menu_bar import TopBar
 from hw_track import HWTracking
+from new_weekly_view import WeeklyView
 import sys
 
 #inherting from QMainWindows
@@ -55,6 +56,9 @@ class MainWindow(QMainWindow):
         self.monthly_calendar.setLayoutDirection(Qt.RightToLeft)
 
         # set the weekly view
+        self.new_weekly_view = WeeklyView(self.db)
+        self.new_weekly_view.show_week(QDate.currentDate().toPython())
+        
         self.weekly_view = WeeklyCalendarView(QDate.currentDate(), self.db)
         self.weekly_view.calendar_table.setFocusPolicy(Qt.StrongFocus)
         self.weekly_view.calendar_table.setMouseTracking(True)
@@ -64,6 +68,7 @@ class MainWindow(QMainWindow):
         self.calendar_stack = QStackedWidget()
         self.calendar_stack.addWidget(self.monthly_calendar) # index 0
         self.calendar_stack.addWidget(self.weekly_view) #index 1
+        self.calendar_stack.addWidget(self.new_weekly_view) #index 2
         self.calendar_view = "month"
 
         self.hw_track = HWTracking(QDate.currentDate(), self.db)
@@ -84,15 +89,20 @@ class MainWindow(QMainWindow):
     def toggle_weekly_monthly(self):
         if self.calendar_view == "month":
             self.weekly_view.update_date_and_events(QDate.currentDate(), "week", "all")
-            self.calendar_stack.setCurrentIndex(1)
+            week_start = QDate.currentDate().addDays(-(QDate.currentDate().dayOfWeek() % 7))
+            self.new_weekly_view.show_week(week_start.toPython())
+
+            self.calendar_stack.setCurrentIndex(2)
             self.top_bar.switch_action.setText("Switch to Month View")
             self.calendar_view = "week"
 
             #force the events to match the weekly calendar widget
             #self.weekly_view.calendar_table.setVisible(True)
-            self.weekly_view.setFocus()
-            self.weekly_view.calendar_table.setFocus()
-            self.right_widget.resize((self.weekly_view.col_width * (self.weekly_view.cols_num+1)) + 11, 700)
+            #self.weekly_view.setFocus()
+            #self.weekly_view.calendar_table.setFocus()
+            self.new_weekly_view.setFocus()
+            #self.right_widget.resize((self.weekly_view.col_width * (self.weekly_view.cols_num+1)) + 11, 700)
+            self.right_widget.resize(1200,700)
             print(f"calculated width: {self.weekly_view.col_width * self.weekly_view.cols_num}, col_width: {self.weekly_view.col_width}, col_num: {self.weekly_view.cols_num}")
         else:
             self.calendar_stack.setCurrentIndex(0)

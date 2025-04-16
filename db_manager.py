@@ -203,4 +203,14 @@ class AppDB:
         conn.close()
         print(events)
         return events
-
+    
+    def get_events_in_range(self, start_dt_str, end_dt_str):
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT * FROM events_table
+        WHERE NOT (event_end_time <= ? OR event_start_time >= ?)
+        """, (start_dt_str, end_dt_str))
+        events = cursor.fetchall()
+        conn.close()
+        return events
