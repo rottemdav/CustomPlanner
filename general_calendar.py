@@ -56,10 +56,15 @@ class CalendarBase(QWidget):
 
         for row in range(self.rows_num):
             for col in range(self.cols_num):
-                new_item = QTableWidgetItem("")
-                new_item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                new_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.calendar_table.setItem(row, col, new_item)
+                cell_container = QWidget()
+                cell_grid_layout = QVBoxLayout()
+                cell_grid_layout.setContentsMargins(2,2,2,2)
+                cell_grid_layout.setSpacing(4)
+                cell_container.setLayout(cell_grid_layout)
+                #new_item = QTableWidgetItem("")
+                #new_item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                #new_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.calendar_table.setCellWidget(row, col, cell_container)
 
         return self.calendar_table
 
@@ -323,6 +328,8 @@ class CalendarBase(QWidget):
 
         #self._init_cells()     
 
+# ================ additional sub-classes ==================
+
 class newEventDialog(QDialog):
     def __init__(self, time_str, parent=None):
         super().__init__(parent)
@@ -357,4 +364,13 @@ class newEventDialog(QDialog):
 
     def get_data(self):
         return self.event_title.text().strip(), self.layer_select.currentText()
-        
+
+class EventBlock(QWidget):
+    def __init__(self, event_id, title:str, color:str, parent=None):
+        super().__init__(parent)
+        self.event_id = event_id
+        self.event_layout = QVBoxLayout(self)
+        self.event_layout.setContentsMargins(0,0,0,0)
+        self.title = QLabel(title)
+        self.title.setAlignment(Qt.AlignCenter)
+        self.event_layout.addWidget(self.title)

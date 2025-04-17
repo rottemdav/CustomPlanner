@@ -1,12 +1,12 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHBoxLayout, QTableWidget
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QCheckBox, QHBoxLayout, QTableWidget,
+                                QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsSimpleTextItem)
+from PySide6.QtCore import Qt, QDate, QRectF, QDateTime
 from datetime import datetime, time
 from typing import List
 
 #files import
 from general_calendar import CalendarBase
 from db_manager import AppDB
-
 
 class WeeklyCalendarView(CalendarBase):
     def __init__(self , date: QDate, db:AppDB, rows: int = 24, parent: QWidget | None = None) -> None:
@@ -73,3 +73,46 @@ class WeeklyCalendarView(CalendarBase):
             print(f" [LOG] Fetching event from layer {layer}. ")
             self.load_event_by_week(self.week_start_date, layer)
 
+# ===========================================================================
+
+class WeeklyView(QGraphicsView):
+    def __init__(self, db, parent=None):
+        super().__init__(parent)
+
+        self.db = db
+        self.scene = QGraphicsScene(self)
+        self.setScene(self.scene)
+
+        #size
+        self.day_width = 150
+        self.minutes = 0.5
+        scene_width = self.day_width * 7
+        scene_height = int(24*60*self.minutes_scale)
+        self.scene.setSceneRect(0,0,scene_width, scene_height)
+
+        #scrollbars
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        self.show_week(datetime.date.today())
+
+    def show_week(self, start_date):
+        self.scene.clear()
+
+        #7 days from today
+        days = [start_date + datetime.timedelta(days=i) for i in range(7)]
+
+        for day_index, day_date in enumerate(days):
+            day_start_dt = datetime.datetime(day_date.year, day_date.month, day_date.day, 0, 0)
+            day_end_dt   = datetime.datetime(day_date.year, day_date.month, day_date.day, 23, 59)
+
+            start_str = day_start_dt.strftime("%Y-%m-%d %H:%M:%S")
+            end_str   = day_end_dt.strftime("%Y-%m-%d %H:%M:%S")
+            events = self.db.get_events_in_range(start_str, end_str)
+
+            event_positions = self.layout_events_for_day(events)
+
+            for e_pos in event_positions:
+                self.add_event_item(day_index, e_pos)
+        
+        self.draw_guidelines()
