@@ -43,7 +43,7 @@ class AppDB:
             CREATE TABLE IF NOT EXISTS events_table (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_title TEXT NOT NULL,
-                desc TEXT,
+                desc TEXT NOT NULL,
                 event_date TEXT NOT NULL,
                 event_start_time TEXT NOT NULL,
                 event_end_time TEXT NOT NULL,
@@ -141,18 +141,19 @@ class AppDB:
 
     # =============== EVENT METHODS    ===============
 
-    def add_calendar_event(self, event_title: str, event_date: str,
+    def add_calendar_event(self, event_title: str, event_desc: str, 
+                           event_date: str,
                            event_start_time: int, event_end_time: int, layer:str,
                            block_color:str, file_path:str, time_created: datetime):
         time_created = datetime.now()
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("""
-                       INSERT INTO events_table (event_title,  event_date,
+                       INSERT INTO events_table (event_title,  event_date, desc,
                                                  event_start_time, event_end_time, layer,
                                                  block_color, file_path, time_created) 
-                       VALUES (?,?,?,?,?,?,?,?)""",
-                       (event_title, event_date, event_start_time, event_end_time, layer , block_color, "" , time_created.isoformat())
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                       (event_title, event_date, "" , event_start_time, event_end_time, layer , block_color, "" , time_created.isoformat())
                         )
         event_id = cursor.lastrowid
         conn.commit()

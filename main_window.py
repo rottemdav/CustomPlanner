@@ -14,7 +14,7 @@ from clock_view import ClockView
 from db_manager import AppDB
 from menu_bar import TopBar
 from hw_track import HWTracking
-from new_weekly_view import WeeklyView
+from new_weekly_view import WeeklyView, WeeklyViewContainer
 import sys
 
 #inherting from QMainWindows
@@ -56,8 +56,8 @@ class MainWindow(QMainWindow):
         self.monthly_calendar.setLayoutDirection(Qt.RightToLeft)
 
         # set the weekly view
-        self.new_weekly_view = WeeklyView(self.db)
-        self.new_weekly_view.show_week(QDate.currentDate().toPython())
+        self.new_weekly_view = WeeklyViewContainer(self.db)
+        #self.new_weekly_view.calendar_view.show_week(QDate.currentDate().toPython())
         
         self.weekly_view = WeeklyCalendarView(QDate.currentDate(), self.db)
         self.weekly_view.calendar_table.setFocusPolicy(Qt.StrongFocus)
@@ -88,9 +88,9 @@ class MainWindow(QMainWindow):
 
     def toggle_weekly_monthly(self):
         if self.calendar_view == "month":
-            self.weekly_view.update_date_and_events(QDate.currentDate(), "week", "all")
+            #self.weekly_view.update_date_and_events(QDate.currentDate(), "week", "all")
             week_start = QDate.currentDate().addDays(-(QDate.currentDate().dayOfWeek() % 7))
-            self.new_weekly_view.show_week(week_start.toPython())
+            self.new_weekly_view.calendar_view.show_week(week_start.toPython())
 
             self.calendar_stack.setCurrentIndex(2)
             self.top_bar.switch_action.setText("Switch to Month View")
