@@ -96,14 +96,8 @@ class MainWindow(QMainWindow):
             self.top_bar.switch_action.setText("Switch to Month View")
             self.calendar_view = "week"
 
-            #force the events to match the weekly calendar widget
-            #self.weekly_view.calendar_table.setVisible(True)
-            #self.weekly_view.setFocus()
-            #self.weekly_view.calendar_table.setFocus()
             self.new_weekly_view.setFocus()
-            #self.right_widget.resize((self.weekly_view.col_width * (self.weekly_view.cols_num+1)) + 11, 700)
             self.right_widget.resize(1200,700)
-            print(f"calculated width: {self.weekly_view.col_width * self.weekly_view.cols_num}, col_width: {self.weekly_view.col_width}, col_num: {self.weekly_view.cols_num}")
         else:
             self.calendar_stack.setCurrentIndex(0)
             self.top_bar.switch_action.setText("Switch to Week View")
@@ -127,7 +121,10 @@ class MainWindow(QMainWindow):
             print("Right View: Switched to Calendar.")
             self.top_bar.hw_track.setText("Switch to Homework Tracking")
             self.right_view = "calendar"
-            self.resize(600,700)
+            if self.calendar_view == "week":
+                self.resize(1200,700)
+            else:
+                self.resize(600,700)
 
     def open_daily_view(self, date: QDate):
         self.day_view.update_date(date)

@@ -157,11 +157,12 @@ class AppDB:
                         )
         event_id = cursor.lastrowid
         conn.commit()
-        print(f"wrote event num {event_id} to the events_table.")
+        print(f"[DB-LOG] Wrote event num {event_id} to the events_table. Start time: {event_start_time}")
         conn.close()
         return event_id
     
     def remove_calendar_event(self, event_id):
+        print(f" [DB-LOG] Removing event with id: {event_id} layer from events table...")
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM events_table WHERE id = ?", (event_id,))
@@ -212,6 +213,16 @@ class AppDB:
         SELECT * FROM events_table
         WHERE NOT (event_end_time <= ? OR event_start_time >= ?)
         """, (start_dt_str, end_dt_str))
+        events = cursor.fetchall()
+        conn.close()
+        return events
+
+    def update_event_layer(self, event_id, new_layer):
+        print(f" [DB-LOG] Updating event with id: {event_id} layer in events table...")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE events_table SET layer = ? WHERE id =?", (new_layer, event_id))
+        print(f" [DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_layer}'")
         events = cursor.fetchall()
         conn.close()
         return events
