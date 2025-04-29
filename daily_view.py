@@ -2,14 +2,17 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
                                 QTableWidget, QHeaderView, QPushButton,
                                 QTableWidgetItem, QHBoxLayout, 
                                 QListWidget, QListWidgetItem, QCheckBox, 
-                                QLineEdit, QInputDialog,QAbstractItemView, QMenu
+                                QLineEdit, QInputDialog,QAbstractItemView, QMenu,
+                                QSizePolicy
                                 )
 from PySide6.QtCore import QDate, Qt, QEvent, Signal
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtGui import QBrush, QColor, QAction
+from datetime import timedelta, date
 
 #import from project files
 from db_manager import AppDB
+from new_weekly_view import WeeklyView
 
 class DayView(QWidget):
     daily_view_closed = Signal()
@@ -22,6 +25,7 @@ class DayView(QWidget):
         #self.setGeometry(200, 200, 300, 400)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
 
         self.label = QLabel(f"תכנון יומי -  {date.toString('dddd, MMMM d, yyyy')}")
         layout.addWidget(self.label)
@@ -40,7 +44,15 @@ class DayView(QWidget):
         self.todo_list = ToDoList(date, self.db)
         layout.addWidget(self.todo_list, stretch=3)
 
-        self.daily_calendar = DailyCalendar(date, self.db)
+        #self.daily_calendar = DailyCalendar(date, self.db)
+        self.daily_calendar = DailyCalendarView(self.db, parent=self)
+        self.daily_calendar.show_day(date)
+
+        self.daily_calendar.header_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        layout.addWidget(self.daily_calendar.header_view)
+
+        self.daily_calendar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         layout.addWidget(self.daily_calendar, stretch=7)
 
         #handlers
@@ -50,14 +62,55 @@ class DayView(QWidget):
         self.date = date
         self.label.setText(f"Tasks for {date.toString('dddd, MMM d')}")
 
-        self.daily_calendar.clear_calendar()
-
+        #self.daily_calendar.clear_calendar()
+        self.daily_calendar.show_day(date)
         self.todo_list.update_date_and_tasks(date)
-        self.daily_calendar.update_date_and_events(date)
+        #self.daily_calendar.update_date_and_events(date)
 
     def close_daily_view(self):
         self.setVisible(False)
         self.daily_view_closed.emit()
+
+class DailyCalendarView(WeeklyView):
+    def __init__ (self, db, parent=None):
+        super().__init__(days_num = 1, db=db ,parent=parent)
+        self.day_width = 200
+        self.minutes_scale = 0.7
+
+        #make the view a signle column
+        self.scene.setSceneRect(0,0,self.day_width, int(24*60 *self.minutes_scale))
+
+        self.header_view.setVisible(True)
+        self.header_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.header_view.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+
+    def show_day(self, qdate:QDate):
+        #self.scene.clear()
+        super().show_week(qdate.toPython())
+
+        self.start_date = date(qdate.year(), qdate.month(), qdate.day())
+
+        d_start = self.start_date
+        d_end = self.start_date
+
+        start_dt_str = f"{d_start:%Y-%m-%d} 00:00:00"
+        end_dt_str = f"{d_end:%Y-%m-%d} 23:59:59"
+
+        events = self.db.get_events_in_range(start_dt_str, end_dt_str)
+        e_posisitons = self.layout_events_for_day(events)
+        for e_pos in e_posisitons:
+            self.add_event_item(day_index = 0, e_pos=e_pos)
+
+        self.draw_guidelines()
+        #self.centerOn(0,8*60*self.minutes_scale)
+
+        center_value = int(8*60*self.minutes_scale) - self.viewport().height() // 2
+        self.verticalScrollBar().setValue(max(0,center_value))
+
 
 class DailyCalendar(QWidget):
     def __init__(self, date:QDate, db:AppDB):

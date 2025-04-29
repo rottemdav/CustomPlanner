@@ -106,8 +106,6 @@ class MainWindow(QMainWindow):
 
         self.resize(self.right_widget.width(), 700)
 
-
-
     def switch_to_hw_track(self):
         if self.right_view == "calendar":
             self.right_view_stack.setCurrentIndex(1)
@@ -127,10 +125,15 @@ class MainWindow(QMainWindow):
                 self.resize(600,700)
 
     def open_daily_view(self, date: QDate):
+        was_hidden = not self.day_view.isVisible()
+
         self.day_view.update_date(date)
         self.day_view.setVisible(True)
-
-        self.resize(self.right_widget.width() + self.day_view.width(), 700)
+        
+        if was_hidden:
+             self.resize(self.width() + self.day_view.daily_calendar.day_width, 700)
+        #print(f"self.width(): {self.width()}, daily_calendar_width: {self.day_view.daily_calendar.day_width}")
+        #self.resize(1200, 700)
     
     def restore_size(self):
         self.resize(600,700)

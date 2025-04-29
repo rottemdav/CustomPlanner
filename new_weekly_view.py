@@ -2,10 +2,10 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QCheckBox, QHBoxLayout, QTa
                                 QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsSimpleTextItem,
                                 QGraphicsTextItem,
                                 QInputDialog, QLineEdit, QMenu, QSpacerItem, QSizePolicy, QLabel,
-                                QComboBox, QPushButton,QDialog
+                                QComboBox, QPushButton,QDialog, QSpinBox
                                 )
 from PySide6.QtCore import Qt, QDate, QRectF, QDateTime, QPoint
-from PySide6.QtGui import QPen, QBrush, QColor,  QAction, QTextOption
+from PySide6.QtGui import QPen, QBrush, QColor,  QAction, QTextOption, QPainter, QFontMetrics
 from datetime import datetime, time, date, timedelta
 from typing import List
 import traceback
@@ -22,7 +22,7 @@ class WeeklyViewContainer(QWidget):
     def __init__(self, db):
         super().__init__()
 
-        self.calendar_view = WeeklyView(db)
+        self.calendar_view = WeeklyView(7, db)
         self.header_view = self.calendar_view.header_view
 
         layout = QVBoxLayout(self)
@@ -37,10 +37,23 @@ class WeeklyViewContainer(QWidget):
         self.layers_buttons = {}
         self.create_layers_buttons()
 
+        #navigation bar
+        self.nav_bar = QWidget()
+        self.nav_layout = QHBoxLayout(self.nav_bar)
+        self.nav_layout.setContentsMargins(0,0,0,0)
+        self.nav_layout.setAlignment(Qt.AlignCenter)
+        self.create_nav_bar_buttons()
+
+        #placing widgets
+        layout.addWidget(self.nav_bar)
+        layout.addSpacerItem(QSpacerItem(0,10, QSizePolicy.Minimum, QSizePolicy.Fixed))
         layout.addWidget(self.layers_widget)
         layout.addSpacerItem(QSpacerItem(0,10, QSizePolicy.Minimum, QSizePolicy.Fixed))
         layout.addWidget(self.header_view)
         layout.addWidget(self.calendar_view)
+
+        #launching
+        self.calendar_view.show_week(self.calendar_view.start_date)
 
     def create_layers_buttons(self):
         for layer_name, color in LAYERS_COLORS.items():
@@ -57,18 +70,41 @@ class WeeklyViewContainer(QWidget):
         active_layers = [ layer for layer, button in self.layers_buttons.item() if button.isChecked()]
         self.calendar_view.filter_layers(active_layers)
 
+    def create_nav_bar_buttons(self):
+        curr_week_start = self.calendar_view.start_date
+        print(f"[LOAD-LOG] - curr_week_start: {curr_week_start}")
+        self.prev_btn = QPushButton("-->")
+        self.prev_btn.clicked.connect(self.show_prev_week)
+        self.next_btn = QPushButton("<--")
+        self.next_btn.clicked.connect(self.show_next_week)
+        self.week_label = QLabel()
+
+        self.nav_layout.addWidget(self.next_btn)
+        self.nav_layout.addWidget(self.week_label)
+        self.nav_layout.addWidget(self.prev_btn)
+
+    def show_prev_week(self):
+        new_week_start = self.calendar_view.start_date - timedelta(days=7)
+        self.calendar_view.show_week(new_week_start)
+
+    def show_next_week(self):
+        new_week_start = self.calendar_view.start_date + timedelta(days=7)
+        self.calendar_view.show_week(new_week_start)
+
 class WeeklyView(QGraphicsView):
-    def __init__(self, db, parent=None):
+    def __init__(self, days_num:int , db, parent=None):
         super().__init__(parent)
 
         self.db = db
+        self.days_num = days_num or 7
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
+        self.start_date = date.today()
 
         #size
         self.day_width = 150
-        self.minutes_scale = 0.5
-        scene_width = self.day_width * 7
+        self.minutes_scale = 0.6
+        scene_width = self.day_width * self.days_num
         scene_height = int(24*60*self.minutes_scale)
         self.scene.setSceneRect(0,0,scene_width, scene_height)
 
@@ -95,8 +131,6 @@ class WeeklyView(QGraphicsView):
         #coordinates
         self.scene_top_left = self.mapToScene(0,0)
 
-        self.show_week(date.today())
-
         self.centerOn(0, 8 *60 * self.minutes_scale)
         self.ensureVisible(0,25*60*self.minutes_scale,1,1)
 
@@ -106,6 +140,9 @@ class WeeklyView(QGraphicsView):
         self.scene.clear()
 
         self.start_date = start_date
+        print(f"[LOG] - 'show_week' - Reloading weekly calendar view with date - {self.start_date}")
+        #traceback.print_stack(limit=5)
+
 
         self.add_day_headers(start_date, self.header_scene)
         #self.add_day_headers(start_date, self.scene)
@@ -113,7 +150,7 @@ class WeeklyView(QGraphicsView):
         self.add_hours_markers()
 
         #7 days from today
-        days = [(start_date + timedelta(days=i)) for i in range(7)]
+        days = [(start_date + timedelta(days=i)) for i in range(self.days_num)]
 
         for day_index, day_date in enumerate(days):
             day_start_dt = datetime(day_date.year, day_date.month, day_date.day, 0, 0)
@@ -146,7 +183,7 @@ class WeeklyView(QGraphicsView):
 
 #        self.scene.setSceneRect(0, -header_height, scene_width, scene_height)
 
-        for i in range(7):
+        for i in range(self.days_num):
             #format text
             current_date = start_date + timedelta(days=i)
             day_name = current_date.strftime("%A")
@@ -154,7 +191,8 @@ class WeeklyView(QGraphicsView):
             header_text = f"{day_name}\n{date_str}"
 
             #reverved the placement order
-            display_index = 6 - i
+            #display_index = 6 - i
+            display_index = self.days_num - 1 - i
 
             #create the object
             header_item = QGraphicsSimpleTextItem(header_text)
@@ -185,6 +223,7 @@ class WeeklyView(QGraphicsView):
             self.scene.addItem(hour_label)
 
     def layout_events_for_day(self, events):
+        print(f"[LOG] - 'layout_events_for_day' - Reordering the events for display - {self.start_date}")
         """
         **IMPORTANT** - The events already exist in the DB - the newest event is already in the DB.
         This function is being called for each day separetaly!
@@ -193,13 +232,13 @@ class WeeklyView(QGraphicsView):
         # Sort by start_time
         # events is a list of tuples like: (id, title, start_time, end_time, description, ...)
         sorted_events = sorted(events, key=lambda e: (e[4], e[5]))  # e[4] is start_time
-        print(f"sorted_events: {sorted_events}") if sorted_events else None
+        #print(f"sorted_events: {sorted_events}") if sorted_events else None
 
         columns = []  # each element is a list of events that occupy that column
         result = []
 
         for evt in sorted_events:
-            print(f"[PLACE EVENTS - LOG] Checking overlapping for event: {evt[0]}")
+            #print(f"[PLACE EVENTS - LOG] Checking overlapping for event: {evt[0]}")
             #print(f"event: {evt}, evt[2]: {evt[2]}, evt[3]: {evt[3]}")
             partition = 1
             overlap_event_ids = []
@@ -214,7 +253,7 @@ class WeeklyView(QGraphicsView):
             last_evt = None
             for col_index, col_events in enumerate(columns):
                 last_evt = col_events[-1]
-                print(f"[OVERLAP-LOG] col index: {col_index}, last_evt: {last_evt}")
+                #print(f"[OVERLAP-LOG] col index: {col_index}, last_evt: {last_evt}")
                 last_evt_end = self.to_minutes(last_evt[5])  # last event end_time
                 # If the new event starts after or exactly at the last event's end, no overlap
                 #print(f"[OVERLAP-LOG] s_min: {s_min}, last_evt_end: {last_evt_end}")
@@ -279,36 +318,35 @@ class WeeklyView(QGraphicsView):
         # max number of cols that can fit in day_width: x_pos = day_index * self.day_width + (col_index * (self.day_width/4))  
         # The event data
         evt = e_pos['event']
-        evt_id, evt_title, event_desc, _, _, _, event_layer, *rest = evt  # adapt to your columns
-        #print(f"evt: {evt}")
+        evt_id, evt_title, event_desc, _, _, _, event_layer, event_color,  *rest = evt  # adapt to your columns
+        print(f"evt: {evt}")
         #print(f"evt_id: {evt_id}, evt_title: {evt_title}, event_desc: {event_desc}, event_layer: {event_layer}")
 
         # Create a rectangle to represent the event
-        rect = QRectF(x_pos, y_pos, column_width, height)
-        rect_item = EventBlock(rect, evt_id, evt_title, event_layer, self.db)
+        rect = QRectF(0, 0, column_width, height)
+        #rect = QRectF(x_pos, y_pos, column_width, height)
+        rect_item = EventBlock(rect, evt_id, evt_title, event_desc, event_layer, event_color, self.db)
+        rect_item.setPos(x_pos, y_pos)
 
         #move the adding to the DB to here
         
         self.scene.addItem(rect_item)
-
-        # Add text label for the event title (and maybe time or location)
-        # text_item = QGraphicsTextItem(evt_title, parent=rect_item)
-        # text_item.setTextWidth(column_width)
-        # text_item.setPos(x_pos + 5, y_pos + 5)  # slight offset so it’s inside
 
     def draw_guidelines(self):
         """
         Draw day boundaries and hour lines for better visual structure.
         """
         # Day boundaries:
-        for d in range(8):  # 0..7
+        for d in range(self.days_num + 1):  # 0..7
             x = d * self.day_width
-            self.scene.addLine(x, 0, x, self.scene.height(), QPen(Qt.gray, 1))
+            line = self.scene.addLine(x, 0, x, self.scene.height(), QPen(Qt.gray, 1))
+            line.setZValue(-1)
 
         # Hour lines (24 hours)
         for h in range(25):  # 0..24
             y = h * 60 * self.minutes_scale
-            self.scene.addLine(0, y, self.scene.width(), y, QPen(Qt.lightGray, 0.5))
+            line = self.scene.addLine(0, y, self.scene.width(), y, QPen(Qt.lightGray, 0.5))
+            line.setZValue(-1)
 
     def to_minutes(self, dt_str):
         """
@@ -331,10 +369,11 @@ class WeeklyView(QGraphicsView):
 
             for event in self.scene.items():
                 if hasattr(event, "event_id") and event.event_id == e_id:
-                    rect = event.rect()
-                    new_rect = QRectF(new_x, rect.y(), new_col_width, rect.height())
-                    #print(f"event_id: {e_id}, new_x: {new_x}, new_col_width: {new_col_width}")
+                    old_rect = event.boundingRect()
+                    new_rect = QRectF(0,0, new_col_width, old_rect.height())
                     event.setRect(new_rect)
+                    event.setPos(new_x,event.pos().y())
+                    #print(f"event_id: {e_id}, new_x: {new_x}, new_col_width: {new_col_width}")
                     break #found the overlap event, advance to the next one
 
 # ========================= interactive functionalities ============================
@@ -424,7 +463,7 @@ class WeeklyView(QGraphicsView):
 
     def handle_single_click(self, scene_pos):
         day_index = int(scene_pos.x() / self.day_width)
-        if day_index > 6:
+        if day_index > self.days_num - 1:
             return
 
         #correction for the right-to-left layout
@@ -440,7 +479,7 @@ class WeeklyView(QGraphicsView):
 
     def handle_span_click(self, scene_end_pos):
         day_index = int(scene_end_pos.x() / self.day_width)
-        if day_index > 6:
+        if day_index > self.days_num - 1:
             return
 
         #correction for the right-to-left layout
@@ -452,6 +491,14 @@ class WeeklyView(QGraphicsView):
         end_hour = end_minutes // 60
         start_minute = round((start_minutes % 60) / 30 ) * 30
         end_minute = round((end_minutes % 60) / 30 ) * 30
+
+        if start_minute == 60:
+            start_minute = 0
+            start_hour += 1
+
+        if end_minute == 60:
+            end_minute = 0
+            end_hour += 1
 
         print(f"start_minutes: {start_minutes}, end_minutes: {end_minutes}, start_hour: {start_hour}, end_hour: {end_hour}")
         
@@ -469,42 +516,51 @@ class WeeklyView(QGraphicsView):
 
         new_event_dialog = CustomEventDialog(time_range,time_range_for_text, self)
         if new_event_dialog.exec() == QDialog.Accepted:
-            title,layer = new_event_dialog.get_data()
+            title, desc, layer,is_repeated, recur_num = new_event_dialog.get_data()
             if title:
                 start_dt_str = start_dt.strftime("%Y-%m-%d %H:%M:%S")
                 end_dt_str = end_dt.strftime("%Y-%m-%d %H:%M:%S")
                 event_date = event_date.strftime("%Y-%m-%d")
-                self.db.add_calendar_event(title, event_date, "", start_dt_str, end_dt_str, layer,"","", QDate.currentDate())
+                color_key = LAYERS_COLORS.get(layer, "grey")
+                color_hex = COLORS_PALETTE.get(color_key,"#E0E0E0")
+                #color_hex = QColor(hex_code)
+                if is_repeated:
+                    self.db.add_repeated_calendar_event(recur_num, title, event_date, desc, start_dt_str, end_dt_str, layer,color_hex,"", QDate.currentDate())
+                else:
+                    self.db.add_calendar_event(event_title = title,
+                                               event_desc = desc ,
+                                               event_date = event_date,
+                                               event_start_time = start_dt_str,
+                                               event_end_time = end_dt_str,
+                                               layer =  layer,
+                                               block_color = color_hex,
+                                               file_path = "",
+                                               time_created = QDate.currentDate()
+                                            )
 
                 self.show_week(self.start_date)
 
 class EventBlock(QGraphicsRectItem):
-    def __init__(self, rect, event_id, title, layer, db, parent=None):
+    def __init__(self, rect, event_id, title, desc, layer, color,  db, parent=None):
         super().__init__(rect, parent)
 
         self.event_id = event_id
         self.event_title = title
+        self.event_desc = desc
         self.db = db
         self.layer = layer
+        self.color = color
 
+        #visuals
         fallback_layer = LAYERS_COLORS.get(self.layer, "grey")
-        # example - rect_item.setBrush(QBrush(QColor("#87CEFA")))  # example color
-        self.setBrush(QBrush(QColor(COLORS_PALETTE[fallback_layer])))
-        self.setPen(QPen(Qt.black, 1))
+
+        self.base_color = QColor(color)
+        self.tag_color = QColor(COLORS_PALETTE["grey"])  
+
+        #self.setBrush(QBrush(QColor(COLORS_PALETTE[fallback_layer])))
+
         self.setFlag(QGraphicsRectItem.ItemIsSelectable)
         self.setAcceptHoverEvents(True)
-
-        #create the title
-        self.title_item = QGraphicsTextItem(self.event_title, self)
-        self.title_item.setTextWidth(rect.width() - 4 )
-        self.title_item.setDefaultTextColor(Qt.black)
-        self.title_item.setPos(rect.x() +2, rect.y() + 2)
-        
-        #align center
-        title_option = QTextOption()
-        title_option.setAlignment(Qt.AlignCenter)
-        self.title_item.document().setDefaultTextOption(title_option)
-
 
     def contextMenuEvent(self, event):
         menu = QMenu()
@@ -520,12 +576,22 @@ class EventBlock(QGraphicsRectItem):
             change_layer_menu.addAction(change_layer_action)
             layer_options[change_layer_action] = layer_name #map action to its layer
 
+        change_color_menu = menu.addMenu("Change Color")
+        color_options = {}
+        for color in COLORS_PALETTE.keys():
+            change_color_action = QAction(color, change_color_menu)
+            change_color_menu.addAction(change_color_action)
+            color_options[change_color_action] = color #map action to its color
+
         selected_action = menu.exec(event.screenPos())
         if selected_action == delete_action:
             print(f"[LOG] - Deleting event {self.event_id}")
             self.db.remove_calendar_event(self.event_id)
-            self.scene().removeItem(self)
-        
+
+            view = self.scene().views()[0]
+            if hasattr(view, "show_week"):
+                view.show_week(view.start_date)
+                     
         elif selected_action in layer_options:
             new_layer = layer_options[selected_action]
             print(f"[EVENT LOG] - Changing layer of event with id: {self.event_id} to '{new_layer}")
@@ -536,8 +602,67 @@ class EventBlock(QGraphicsRectItem):
 
             self.db.update_event_layer(self.event_id, new_layer)
 
-        return super().contextMenuEvent(event)
+        elif selected_action in color_options:
+            new_color = color_options[selected_action]
+            print(f"[EVENT LOG] - Changing color of event with id: {self.event_id} to '{new_color}")
+            new_color_hex = COLORS_PALETTE.get(new_color, "#E0E0E0")
+
+            self.db.update_event_color(self.event_id, new_color_hex)
+
+            self.setBrush(QBrush(QColor(new_color_hex)))
+            self.base_color = QColor(new_color_hex)
+            self.update()
+
+        return
+        #super().contextMenuEvent(event)
     
+    def paint(self, painter: QPainter, option, widget):
+
+        r = self.boundingRect()
+
+        #draw background
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(self.base_color))
+        painter.drawRect(r)
+
+        #draw block borders
+        painter.setPen(QPen(Qt.black, 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(r)
+
+        #decide how many lines will fit
+        font = painter.font()
+        painter.setFont(font)
+        fm = painter.fontMetrics()
+        line_h = fm.lineSpacing()
+        max_lines = int(r.height() // line_h )        
+
+        if max_lines < 2:
+            painter.setPen(Qt.black)
+            painter.drawText(r, Qt.AlignCenter, self.event_title)
+            return
+        
+        #there is enough space - draw the description
+        painter.setPen(Qt.black)
+        title_rect = QRectF(2,2, r.width()-4, line_h)
+        painter.drawText(title_rect, Qt.AlignCenter | Qt.AlignTop, self.event_title)
+
+        painter.setPen(QColor("#606060"))
+        desc_rect = QRectF(2,2+line_h, r.width()-4, line_h)
+        painter.drawText(desc_rect, Qt.AlignCenter | Qt.AlignTop, self.event_desc)
+
+        #draw the category tag
+        pad_x = 4
+        tag_w = 40
+        tag_h = 15
+        tag_rect = QRectF(r.x() + 2 , r.y() + r.height() - tag_h - 2, tag_w, tag_h)
+        painter.setPen(QPen(Qt.NoPen))
+        painter.setBrush(QBrush(self.tag_color))
+        painter.drawRoundedRect(tag_rect, 3,3)
+
+        painter.setPen(QPen(Qt.black))
+        painter.drawText(tag_rect, Qt.AlignCenter, self.layer)
+                            
 class CustomEventDialog(QDialog):
     def __init__(self, time_str, time_text, parent=None):
         super().__init__(parent)
@@ -548,16 +673,33 @@ class CustomEventDialog(QDialog):
         #event title
         self.event_title = QLineEdit()
         self.event_title.setPlaceholderText("הוספת שם")
+
+        self.event_desc = QLineEdit()
+        self.event_desc.setPlaceholderText("הוספת הערה")
         
         layout.addWidget(QLabel(f"זמן: {time_text}"))
         layout.addWidget(self.event_title)
+        layout.addWidget(self.event_desc)
 
         self.layer_select = QComboBox()
         self.layer_select.addItems(LAYERS_COLORS.keys())
         self.layer_select.setLayoutDirection(Qt.RightToLeft)
+
+        self.recur_select = QCheckBox("אירוע מחזורי")
+        self.recur_num = QSpinBox()
+        self.recur_num.setRange(1,52)
+        self.recur_num.setSuffix("שבועות ")
+        self.recur_num.setValue(1)
+        self.recur_num.setEnabled(False)
+        self.recur_num.setLayoutDirection(Qt.RightToLeft)
+
+        self.recur_select.toggled.connect(self.recur_num.setEnabled)
         
         layout.addWidget(QLabel("קטגוריה:"))
         layout.addWidget(self.layer_select)
+
+        layout.addWidget(self.recur_select, alignment=Qt.AlignCenter)
+        layout.addWidget(self.recur_num)
 
         button_layout = QHBoxLayout()
         self.ok_button = QPushButton("יצירה")
@@ -573,4 +715,11 @@ class CustomEventDialog(QDialog):
         layout.addLayout(button_layout)
 
     def get_data(self):
-        return self.event_title.text().strip(), self.layer_select.currentText()
+        title = self.event_title.text().strip() 
+        desc = self.event_desc.text().strip()
+        layer = self.layer_select.currentText()
+        repeated = self.recur_select.isChecked()
+        weeks_num = self.recur_num.value() if repeated else 0
+        return title, desc, layer, repeated, weeks_num
+    
+

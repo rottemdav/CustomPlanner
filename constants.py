@@ -14,7 +14,9 @@ COLORS_PALETTE = MappingProxyType(
         "light-purple": "#B7B1F2",
         "light-pink": "#FDB7EA",
         "light-yellow": "#FBF3B9",
-        "grey": "#E0E0E0"
+        "grey": "#E0E0E0",
+        "light-blue": "#B4E4FF",
+        "green": "#A1EEBD"
     }
 )
 

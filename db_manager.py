@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 DB_FILE = "planner.db"
 
@@ -153,7 +153,7 @@ class AppDB:
                                                  event_start_time, event_end_time, layer,
                                                  block_color, file_path, time_created) 
                        VALUES (?,?,?,?,?,?,?,?,?)""",
-                       (event_title, event_date, "" , event_start_time, event_end_time, layer , block_color, "" , time_created.isoformat())
+                       (event_title, event_date, event_desc , event_start_time, event_end_time, layer , block_color, "" , time_created.isoformat())
                         )
         event_id = cursor.lastrowid
         conn.commit()
@@ -161,13 +161,46 @@ class AppDB:
         conn.close()
         return event_id
     
+    def add_repeated_calendar_event(self, recur_num, event_title: str, event_desc: str, 
+                           event_date: str,
+                           event_start_time: int, event_end_time: int, layer:str,
+                           block_color:str, file_path:str, time_created: datetime):
+        time_created = datetime.now()
+        start_dt = datetime.strptime(event_start_time, "%Y-%m-%d %H:%M:%S")
+        end_dt = datetime.strptime(event_end_time, "%Y-%m-%d %H:%M:%S")
+
+        conn = self._connect()
+        cursor = conn.cursor()
+        ids = []
+
+        for i in range(recur_num):
+            loop_start_time = start_dt + timedelta(weeks=i)
+            loop_end_time = end_dt + timedelta(weeks=i)
+            loop_start_time_str = loop_start_time.strftime("%Y-%m-%d %H:%M:%S")
+            loop_end_time_str = loop_end_time.strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute("""
+                        INSERT INTO events_table (event_title,  event_date, desc,
+                                                    event_start_time, event_end_time, layer,
+                                                    block_color, file_path, time_created) 
+                        VALUES (?,?,?,?,?,?,?,?,?)""",
+                        (event_title, loop_start_time.date().isoformat(),
+                          "" , loop_start_time_str, loop_end_time_str, layer , 
+                          block_color, "" , time_created.isoformat())
+                            )
+            ids.append(cursor.lastrowid)
+        event_id = cursor.lastrowid
+        conn.commit()
+        print(f"[DB‑LOG] Wrote {len(ids)} weekly copies; first id {ids[0]}")
+        conn.close()
+        return event_id
+    
     def remove_calendar_event(self, event_id):
-        print(f" [DB-LOG] Removing event with id: {event_id} layer from events table...")
+        #print(f"[DB-LOG] Removing event with id: {event_id} layer from events table...")
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM events_table WHERE id = ?", (event_id,))
         conn.commit()
-        print(f"deleted event {event_id} successfully from events_table.")
+        print(f"[DB-LOG] - Deleted event {event_id} successfully from events_table.")
         conn.close()
 
     def get_calendar_events_by_date(self, date: str):
@@ -224,5 +257,19 @@ class AppDB:
         cursor.execute("UPDATE events_table SET layer = ? WHERE id =?", (new_layer, event_id))
         print(f" [DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_layer}'")
         events = cursor.fetchall()
+        conn.commit()
         conn.close()
         return events
+    
+    def update_event_color(self, event_id, new_color):
+        print(f"[DB-LOG] Updating event with id: {event_id} color in events table...")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE events_table SET block_color = ? WHERE id =?", (new_color, event_id))
+        print(f" [DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_color}'")
+        events = cursor.fetchall()
+        conn.commit()
+        conn.close()
+        return events
+
+
