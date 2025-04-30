@@ -23,7 +23,9 @@ class AppDB:
                 task_date TEXT,
                 task TEXT NOT NULL,
                 due_date TEXT,
-                status INTEGER DEFAULT 0        
+                status INTEGER DEFAULT 0,
+                working_date TEXT,
+                priority INTEGER DEFAULT 2
             )    
         """)
 
@@ -70,7 +72,7 @@ class AppDB:
 
         return task_id
 
-    def remove_task(self, task_id):
+    def remove_personal_task(self, task_id):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM personal_tasks_table WHERE id = ?", (task_id,))
@@ -80,7 +82,7 @@ class AppDB:
     def get_all_tasks(self):
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, task FROM personal_tasks_table WHERE status = 0")
+        cursor.execute("SELECT id, task, working_date, priority FROM personal_tasks_table WHERE status = 0")
         tasks = cursor.fetchall()
         conn.close()
 
@@ -94,6 +96,39 @@ class AppDB:
         conn.close()
 
         return tasks
+    
+    def update_personal_task_status(self, task_id, is_checked):
+        #print(f"[DB-LOG] Updating HW task {task_id} status in personal tasks table...")
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE personal_tasks_table SET status = ? WHERE id =?", (is_checked, task_id))
+        conn.commit()
+        conn.close()
+        print(f"[DB-LOG] Updated task {task_id} to status {is_checked} in personal tasks table.")
+
+    def update_personal_working_date(self, task_id, date):
+        #print(f"[DB-LOG] Updating working date for task with id: {task_id} in personal tasks table ...")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE personal_tasks_table SET working_date = ? WHERE id =?", (date, task_id))
+        print(f"[DB-LOG] Updated working date: {date} for task with id: {task_id} in personal tasks table.")
+        tasks = cursor.fetchall()
+        conn.commit()
+        conn.close()
+        return tasks
+    
+    def update_personal_priority(self, task_id, priority):
+        #print(f"[DB-LOG] Updating priority for task with id: {task_id} in personal tasks table ...")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE personal_tasks_table SET priority = ? WHERE id =?", (priority, task_id))
+        print(f"[DB-LOG] Updated priority to: {priority} for task with id: {task_id} in personal tasks table.")
+        tasks = cursor.fetchall()
+        conn.commit()
+        conn.close()
+        return tasks
+    
+
 
     # =============== HW TASKS METHODS ===============
 

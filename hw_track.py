@@ -20,6 +20,7 @@ class HWTracking(QWidget):
         self.date = date.toString("yyyy-MM-dd")
         self.setLayoutDirection(Qt.RightToLeft)
         self.db = db
+        #self.setMinimumSize(1200,700)
 
         main_layout = QVBoxLayout(self)
         
@@ -98,7 +99,7 @@ class HWTracking(QWidget):
         task_text = self.new_input.text().strip()
         chosen_course = self.courses_list.currentIndex()
         if not task_text or chosen_course < 0:
-            print(f" [DEBUG] No course chose or empty line. STOP.")
+            print(f"[DEBUG] No course chose or empty line. STOP.")
             return
 
         target_list = self.hw_list_widgets[chosen_course]
@@ -112,7 +113,7 @@ class HWTracking(QWidget):
         new_row = QListWidgetItem()
         new_row.setData(Qt.UserRole, task_id)
 
-        new_item = TaskItemWidget(task_text, due_date, self.db, task_id, status=0, working_date="")
+        new_item = HWTaskItemWidget(task_text, due_date, self.db, task_id, status=0, working_date="")
 
         #add to the list
         new_row.setSizeHint(new_item.sizeHint())
@@ -134,7 +135,7 @@ class HWTracking(QWidget):
                 break
         
         if course_index < 0:
-            print(f" [DEBUG] no course was chosen. tried to reach course in index {course_index}. Returning.")
+            print(f"[DEBUG] no course was chosen. tried to reach course in index {course_index}. Returning.")
             return
 
         target_list = self.hw_list_widgets[course_index]
@@ -151,7 +152,7 @@ class HWTracking(QWidget):
             target_list.takeItem(curr_row)
 
     def load_on_start(self):
-        print("Loading Existing Tasks...")
+        print("[LOG] = 'hw_track.load_on_start' - Loading Existing Tasks...")
         for course_list in self.hw_list_widgets:
             course_list.clear()
 
@@ -166,20 +167,20 @@ class HWTracking(QWidget):
 
             #build tasks list
             item = QListWidgetItem()
-            task_widget = TaskItemWidget(task_desc, due_date_str, self.db, task_id, status, working_date)
+            task_widget = HWTaskItemWidget(task_desc, due_date_str, self.db, task_id, status, working_date)
             item.setData(Qt.UserRole, task_id)
             item.setSizeHint(task_widget.sizeHint())
             target_list = self.hw_list_widgets[list_index]
             target_list.addItem(item)
             target_list.setItemWidget(item, task_widget)
 
-        print("Finished Loading.")
+        #print("Finished Loading.")
 
     # def update_date_and_tasks(self, date: QDate):
     #     self.date = date.toString("yyyy-MM-dd")
     #     self.load_on_start()
 
-class TaskItemWidget(QWidget):
+class HWTaskItemWidget(QWidget):
     clicked = Signal()
     def __init__ (self, task_desc: str, due_date_str: str, db, task_id: int, status:int, working_date:str):
         
@@ -306,7 +307,7 @@ class TaskItemWidget(QWidget):
             self.db.update_working_date(self.task_id, chosen_datetime)
 
     def show_working_date(self, working_date_str: str):
-        print("show_working_date got:", working_date_str)
+        #print("show_working_date got:", working_date_str)
 
         if not working_date_str:
             print(f"[WARN] - 'show_working_date' : exited because working_date_str is None.")
@@ -321,8 +322,8 @@ class TaskItemWidget(QWidget):
     
         self.doing_date.setText(f"עושה ב: {chosen_date_str}")
         self.doing_date.setVisible(True)
-        print(f"the doing_date status: {self.doing_date.isVisible()}")
-        print("widget sizeHint: ", self.sizeHint())
+        #print(f"the doing_date status: {self.doing_date.isVisible()}")
+        #print("widget sizeHint: ", self.sizeHint())
 
         self.adjustSize()
         self.updateGeometry()

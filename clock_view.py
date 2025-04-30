@@ -9,7 +9,7 @@ class ClockView(QWidget):
 
         #Qlabel where the time will be shown
         self.clock_label = QLabel()
-        self.clock_label.setStyleSheet("font-size: 36px; font-family: Consolas;")
+        self.clock_label.setStyleSheet("font-size: 28px; font-family: Segoe UI; color:#606060;")
         self.clock_label.setAlignment(Qt.AlignCenter)
 
         #layout defining

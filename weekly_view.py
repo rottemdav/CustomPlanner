@@ -11,7 +11,7 @@ from db_manager import AppDB
 class WeeklyCalendarView(CalendarBase):
     def __init__(self , date: QDate, db:AppDB, rows: int = 24, parent: QWidget | None = None) -> None:
         week_start = date.addDays(-date.dayOfWeek())
-        print(f"week start: {week_start}")
+        #print(f"week start: {week_start}")
         self.week_start_date = week_start
         headers: List[str] = [ 
             week_start.addDays(i).toString("ddd dd/MM")
@@ -59,18 +59,18 @@ class WeeklyCalendarView(CalendarBase):
         self.main_layout.addWidget(self.calendar_table)
 
     def reload_after_selection_change(self):
-        print(" [LOG] Selection Changed. Fecthing events by current checked layers..")
+        print("[LOG] Selection Changed. Fecthing events by current checked layers..")
             
         self.clear_calendar()
         self.selected_layers = [layer.text() for layer in self.layers_buttons if layer.isChecked()]
 
-        print(f" [LOG] Selected layers: {self.selected_layers}")
+        print(f"[LOG] Selected layers: {self.selected_layers}")
 
         if not self.selected_layers:
             return
         
         for layer in self.selected_layers:
-            print(f" [LOG] Fetching event from layer {layer}. ")
+            print(f"[LOG] Fetching event from layer {layer}. ")
             self.load_event_by_week(self.week_start_date, layer)
 
 # ===========================================================================

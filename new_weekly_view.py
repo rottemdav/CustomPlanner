@@ -2,9 +2,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QCheckBox, QHBoxLayout, QTa
                                 QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsSimpleTextItem,
                                 QGraphicsTextItem,
                                 QInputDialog, QLineEdit, QMenu, QSpacerItem, QSizePolicy, QLabel,
-                                QComboBox, QPushButton,QDialog, QSpinBox
+                                QComboBox, QPushButton,QDialog, QSpinBox, QFrame, QStyle
                                 )
-from PySide6.QtCore import Qt, QDate, QRectF, QDateTime, QPoint
+from PySide6.QtCore import Qt, QDate, QRectF, QDateTime, QPoint, QSize
 from PySide6.QtGui import QPen, QBrush, QColor,  QAction, QTextOption, QPainter, QFontMetrics
 from datetime import datetime, time, date, timedelta
 from typing import List
@@ -23,6 +23,10 @@ class WeeklyViewContainer(QWidget):
         super().__init__()
 
         self.calendar_view = WeeklyView(7, db)
+        self.calendar_view.setSizePolicy(
+            QSizePolicy.Expanding,  
+            QSizePolicy.Expanding
+            )
         self.header_view = self.calendar_view.header_view
 
         layout = QVBoxLayout(self)
@@ -50,7 +54,7 @@ class WeeklyViewContainer(QWidget):
         layout.addWidget(self.layers_widget)
         layout.addSpacerItem(QSpacerItem(0,10, QSizePolicy.Minimum, QSizePolicy.Fixed))
         layout.addWidget(self.header_view)
-        layout.addWidget(self.calendar_view)
+        layout.addWidget(self.calendar_view, 1)
 
         #launching
         self.calendar_view.show_week(self.calendar_view.start_date)
@@ -94,19 +98,28 @@ class WeeklyViewContainer(QWidget):
 class WeeklyView(QGraphicsView):
     def __init__(self, days_num:int , db, parent=None):
         super().__init__(parent)
-
+        self.setFrameShape(QFrame.NoFrame)        # option 1
+        
+        #self.setMinimumSize(1200,700)
         self.db = db
         self.days_num = days_num or 7
-        self.scene = QGraphicsScene(self)
-        self.setScene(self.scene)
         self.start_date = date.today()
 
         #size
         self.day_width = 150
         self.minutes_scale = 0.6
-        scene_width = self.day_width * self.days_num
-        scene_height = int(24*60*self.minutes_scale)
-        self.scene.setSceneRect(0,0,scene_width, scene_height)
+        self.grid_w = self.days_num * self.day_width
+        self.time_margin = 60
+        scrollbar_w = self.style().pixelMetric(QStyle.PM_ScrollBarExtent)
+        print(f"scrollbar_w : {scrollbar_w}")
+        self.scene_w = self.grid_w + self.time_margin + scrollbar_w
+        self.scene_h = int(24*60*self.minutes_scale)
+
+        self.scene = QGraphicsScene(self)
+        #self.scene.setSceneRect(0,0,self.scene_w, self.scene_h)
+        self.setScene(self.scene)
+
+        #self.draw_guidelines(self.grid_w, scene_h)
 
         #mouse tracking variables
         self.drag_start_pos = None
@@ -115,18 +128,34 @@ class WeeklyView(QGraphicsView):
 
         #create the headers scene
         self.header_scene = QGraphicsScene()
+        self.header_scene.setSceneRect(0,0,self.scene_w, self.scene_h)
+
+        #setup the header view
         self.header_view = QGraphicsView(self.header_scene)
         self.header_view.setFixedHeight(50)
-        self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.header_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.header_view.setStyleSheet("border: none; background: white;")
+        self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.header_view.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        #self.header_view.setStyleSheet("border: none; background: white;")
 
         #scrollbars
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        #self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.horizontalScrollBar().valueChanged.connect(
-        self.header_view.horizontalScrollBar().setValue
+            lambda val: self.header_view.horizontalScrollBar().setValue(val)
         )
+
+
+        self.header_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        sb = self.header_view.verticalScrollBar()
+        sb.setFixedWidth(0)   
+
+        self_sb = self.verticalScrollBar()
+        self_sb_w = self_sb.sizeHint().width() if self_sb.isVisible() else 0
+        self.scene.setSceneRect(0,0,self.scene_w - self_sb_w, self.scene_h)   
+        self.header_view.setViewportMargins(0, 0, self_sb_w, 0)
 
         #coordinates
         self.scene_top_left = self.mapToScene(0,0)
@@ -162,7 +191,7 @@ class WeeklyView(QGraphicsView):
 
             event_positions = self.layout_events_for_day(events)
 
-            display_index = 6 - day_index 
+            display_index = self.days_num - day_index 
             #print(f"display index: {display_index}, event_positions: {event_positions}")
 
 
@@ -176,7 +205,7 @@ class WeeklyView(QGraphicsView):
         scene.clear()
         #traceback.print_stack(limit=5)
         header_height=50
-        scene_width = self.day_width * 7
+        scene_width = self.scene_w
         scene_height = int(24*60*self.minutes_scale) + header_height
 
         scene.setSceneRect(0,0, scene_width, header_height)
@@ -206,20 +235,26 @@ class WeeklyView(QGraphicsView):
             
             header_item.setPos(x_center, y_center)
             header_item.setData(0,"header")
-            scene.addItem(header_item)
+            self.header_scene.addItem(header_item)
 
             header_margin = QGraphicsRectItem(display_index * self.day_width, 0,
                                               self.day_width,header_height)
             header_margin.setPen(QPen(Qt.black, 1))
-            scene.addItem(header_margin)
+            self.header_scene.addItem(header_margin)
 
     def add_hours_markers(self):
+        right_edge = self.scene_w
+        #x_pos = right_edge - 5
+
         for hour in range(24):
             hour_text = f"{hour:02d}:00"
             hour_label = QGraphicsSimpleTextItem(hour_text)
+            br = hour_label.boundingRect()
 
-            y_pos = hour * 60 * self.minutes_scale
-            hour_label.setPos(self.scene.sceneRect().width() + 5, y_pos - 5)
+            x_pos = self.grid_w + (60 - br.width()) / 3
+            y_pos = hour * 60 * self.minutes_scale #+ (br.height() / 5)
+
+            hour_label.setPos(x_pos, y_pos)
             self.scene.addItem(hour_label)
 
     def layout_events_for_day(self, events):
@@ -319,7 +354,7 @@ class WeeklyView(QGraphicsView):
         # The event data
         evt = e_pos['event']
         evt_id, evt_title, event_desc, _, _, _, event_layer, event_color,  *rest = evt  # adapt to your columns
-        print(f"evt: {evt}")
+        #print(f"evt: {evt}")
         #print(f"evt_id: {evt_id}, evt_title: {evt_title}, event_desc: {event_desc}, event_layer: {event_layer}")
 
         # Create a rectangle to represent the event
@@ -336,16 +371,18 @@ class WeeklyView(QGraphicsView):
         """
         Draw day boundaries and hour lines for better visual structure.
         """
+        pen = QPen(Qt.gray, 0.5)
         # Day boundaries:
-        for d in range(self.days_num + 1):  # 0..7
-            x = d * self.day_width
-            line = self.scene.addLine(x, 0, x, self.scene.height(), QPen(Qt.gray, 1))
+        for d in range(self.days_num ):  # 0..7
+            display_index = self.days_num - d
+            x = display_index * self.day_width
+            line = self.scene.addLine(x, 0, x, self.scene_h, pen)
             line.setZValue(-1)
 
         # Hour lines (24 hours)
         for h in range(25):  # 0..24
             y = h * 60 * self.minutes_scale
-            line = self.scene.addLine(0, y, self.scene.width(), y, QPen(Qt.lightGray, 0.5))
+            line = self.scene.addLine(0, y, self.scene_w, y, pen)
             line.setZValue(-1)
 
     def to_minutes(self, dt_str):
@@ -376,6 +413,8 @@ class WeeklyView(QGraphicsView):
                     #print(f"event_id: {e_id}, new_x: {new_x}, new_col_width: {new_col_width}")
                     break #found the overlap event, advance to the next one
 
+    def sizeHint(self):
+        return QSize(self.scene_w + 2*self.frameWidth(), self.scene_h + 2*self.frameWidth())
 # ========================= interactive functionalities ============================
 
     def mousePressEvent(self, event):
@@ -410,7 +449,7 @@ class WeeklyView(QGraphicsView):
                 try:
                     self.scene.removeItem(self.selection_rect_item)
                 except RuntimeError as e:
-                    print(f" [WARN] Selection rect already deleted: {e}")
+                    print(f"[WARN] Selection rect already deleted: {e}")
                 self.selection_rect_item = None
 
             self.drag_start_pos = None
@@ -447,7 +486,7 @@ class WeeklyView(QGraphicsView):
                 try:
                     self.scene.removeItem(self.selection_rect_item)
                 except RuntimeError as e:
-                    print(f" [WARN] Selection rect already deleted: {e}")
+                    print(f"[WARN] Selection rect already deleted: {e}")
 
             #draw new rectangle
             if normalized_x > 0 and normalized_x < 7 * self.day_width:
@@ -500,7 +539,7 @@ class WeeklyView(QGraphicsView):
             end_minute = 0
             end_hour += 1
 
-        print(f"start_minutes: {start_minutes}, end_minutes: {end_minutes}, start_hour: {start_hour}, end_hour: {end_hour}")
+        #print(f"start_minutes: {start_minutes}, end_minutes: {end_minutes}, start_hour: {start_hour}, end_hour: {end_hour}")
         
         clicked_date = self.start_date + timedelta(days =rtl_day_index)
 
