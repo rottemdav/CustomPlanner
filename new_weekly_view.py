@@ -223,7 +223,7 @@ class WeeklyView(QGraphicsView):
             self.scene.addItem(hour_label)
 
     def layout_events_for_day(self, events):
-        print(f"[LOG] - 'layout_events_for_day' - Reordering the events for display - {self.start_date}")
+        #print(f"[LOG] - 'layout_events_for_day' - Reordering the events for display - {self.start_date}")
         """
         **IMPORTANT** - The events already exist in the DB - the newest event is already in the DB.
         This function is being called for each day separetaly!

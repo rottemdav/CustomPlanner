@@ -111,6 +111,7 @@ class MainWindow(QMainWindow):
             self.right_view_stack.setCurrentIndex(1)
             print("Right View: Switched to HW tracking.")
             self.top_bar.hw_track.setText("Switch to Calendar")
+            self.top_bar.switch_action.setEnabled(False)
             self.right_view = "hw_track"
             self.resize(1200,700)
 
@@ -119,6 +120,7 @@ class MainWindow(QMainWindow):
             print("Right View: Switched to Calendar.")
             self.top_bar.hw_track.setText("Switch to Homework Tracking")
             self.right_view = "calendar"
+            self.top_bar.switch_action.setEnabled(True)
             if self.calendar_view == "week":
                 self.resize(1200,700)
             else:

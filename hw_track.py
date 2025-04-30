@@ -3,9 +3,10 @@ from PySide6.QtWidgets import ( QWidget, QVBoxLayout, QLabel,
                                 QTableWidgetItem, QHBoxLayout, 
                                 QListWidget, QListWidgetItem, QCheckBox, 
                                 QLineEdit, QInputDialog,QAbstractItemView, QMenu,
-                                QComboBox, QGridLayout, QDateEdit
+                                QComboBox, QGridLayout, QDateEdit, QDialog, QDialogButtonBox, QDateTimeEdit,
+                                QSizePolicy
                                 )
-from PySide6.QtCore import QDate, Qt, QEvent, Signal
+from PySide6.QtCore import QDate, Qt, QEvent, Signal, QDateTime, QSize
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtGui import QBrush, QColor, QAction
 
@@ -70,7 +71,7 @@ class HWTracking(QWidget):
         for i in range(2):
             for j in range(3):
                 course_hw_list = QListWidget()
-                course_hw_list.setMinimumWidth
+                #course_hw_list.setMinimumWidth
                 course_hw_list.setSelectionMode(QAbstractItemView.SingleSelection)
                 course_hw_list.setSelectionBehavior(QAbstractItemView.SelectRows)
 
@@ -93,7 +94,7 @@ class HWTracking(QWidget):
         self.load_on_start()
 
     def add_to_list(self):
-        print(f" [LOG] Adding new task to the hw tracking list...")
+        print(f"[LOG] Adding new task to the hw tracking list...")
         task_text = self.new_input.text().strip()
         chosen_course = self.courses_list.currentIndex()
         if not task_text or chosen_course < 0:
@@ -102,7 +103,6 @@ class HWTracking(QWidget):
 
         target_list = self.hw_list_widgets[chosen_course]
         due_date = self.date_chooser.date().toString("yyyy-MM-dd")
-
         course_name = self.courses_list.itemText(chosen_course)
 
         #add to the db
@@ -112,18 +112,19 @@ class HWTracking(QWidget):
         new_row = QListWidgetItem()
         new_row.setData(Qt.UserRole, task_id)
 
-        new_item = TaskItemWidget(task_text, due_date, self.db, task_id, status=0)
+        new_item = TaskItemWidget(task_text, due_date, self.db, task_id, status=0, working_date="")
 
         #add to the list
+        new_row.setSizeHint(new_item.sizeHint())
         target_list.addItem(new_row)
-        target_list.setItemWidget(new_row, new_item)
+        target_list.setItemWidget(new_row, new_item)        
 
-        print(f" [LOG] Added task with id  {task_id} to the to-do list.")
+        print(f"[LOG] Added task with id  {task_id} to the to-do list.")
 
         self.new_input.clear()
 
     def delete_task(self):
-        print(f" [LOG] Deleting a task to the hw tracking list...")
+        print(f"[LOG] Deleting a task to the hw tracking list...")
         course_index = -1
         curr_row = -1
         for i, lst in enumerate(self.hw_list_widgets):
@@ -156,18 +157,18 @@ class HWTracking(QWidget):
 
         all_tasks = self.db.get_all_hw_tasks()
 
-        for task_id, task_desc, due_date_str, status, course_num in all_tasks:
+        for task_id, task_desc, due_date_str, status, course_num, working_date in all_tasks:
             try:
                 list_index = list(COURSE_NUMS.values()).index(course_num)
             except ValueError:
-                print(f" [WARN] unknown course_id {course_num}. Skipping")
+                print(f"[WARN] unknown course_id {course_num}. Skipping")
                 continue
 
             #build tasks list
             item = QListWidgetItem()
-            task_widget = TaskItemWidget(task_desc, due_date_str, self.db, task_id, status)
+            task_widget = TaskItemWidget(task_desc, due_date_str, self.db, task_id, status, working_date)
             item.setData(Qt.UserRole, task_id)
-
+            item.setSizeHint(task_widget.sizeHint())
             target_list = self.hw_list_widgets[list_index]
             target_list.addItem(item)
             target_list.setItemWidget(item, task_widget)
@@ -178,22 +179,28 @@ class HWTracking(QWidget):
     #     self.date = date.toString("yyyy-MM-dd")
     #     self.load_on_start()
 
-
 class TaskItemWidget(QWidget):
     clicked = Signal()
-    def __init__ (self, task_desc: str, due_date_str: str, db, task_id: int, status:int):
+    def __init__ (self, task_desc: str, due_date_str: str, db, task_id: int, status:int, working_date:str):
         
         super().__init__()
         self.db = db
         self.task_id = task_id
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
 
         #caculating days left
         due_date = QDate.fromString(due_date_str, "yyyy-MM-dd")
         today = QDate.currentDate()
         days_remaining = today.daysTo(due_date)
 
-        task_layout = QHBoxLayout(self)
-        task_layout.setContentsMargins(10,0,10,0)
+        # --------------- main verical layout ------------------
+        self.main_layout = QVBoxLayout(self)        
+        self.main_layout.setContentsMargins(5,1,5,1)
+        self.main_layout.setSpacing(2)
+
+        # ---------------- top row -----------------------------
+        top_row = QHBoxLayout(self)
+        top_row.setContentsMargins(0,0,0,0)
 
         self.task_checkbox = QCheckBox(task_desc)
         self.task_checkbox.setLayoutDirection(Qt.RightToLeft)
@@ -205,18 +212,32 @@ class TaskItemWidget(QWidget):
             self.setStyleSheet("text-decoration: line-through; color: gray")
 
         formatted_date = QDate.fromString(due_date_str, "yyyy-MM-dd").toString("dd/MM/yyyy")
-
         self.due_date = QLabel(f"{formatted_date}")
         self.due_date.setAlignment(Qt.AlignCenter)
-        self.due_date.setStyleSheet("font-weight: bold; color: #000877")
+        self.due_date.setStyleSheet("font-weight: bold; color: #000000")
 
         remaining_text = f"{days_remaining} days left"
         self.remaining_label = QLabel(remaining_text)
-        self.remaining_label.setAlignment(Qt.AlignLeft)
+        self.remaining_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        task_layout.addWidget(self.task_checkbox)
-        task_layout.addWidget(self.due_date)
-        task_layout.addWidget(self.remaining_label)
+        top_row.addWidget(self.task_checkbox)
+        top_row.addWidget(self.due_date)
+        top_row.addWidget(self.remaining_label)
+        self.main_layout.addLayout(top_row)
+
+        self.doing_date = QLabel("")
+        self.doing_date.setVisible(False)
+        self.doing_date.setWordWrap(True)
+        self.doing_date.setStyleSheet("color: #6600CC; font-size: 10px;")
+        self.doing_date.setContentsMargins(0,0,20,0)
+        self.main_layout.addWidget(self.doing_date)
+
+        if working_date:
+            self.show_working_date(working_date)
+
+    def sizeHint(self):
+        height = self.main_layout.sizeHint().height()
+        return QSize(0, height)
 
     def select_item(self):
         parent = self.parent()
@@ -235,15 +256,87 @@ class TaskItemWidget(QWidget):
     def task_checked(self, state):
         is_checked = state == Qt.Checked.value
         
-        print(f" [LOG] Task status changed: {'checked' if is_checked else 'unchecked'}")
+        print(f"[LOG] Task status changed: {'checked' if is_checked else 'unchecked'}")
 
         if self.task_id is not None:
-            print(f" [LOG] Changing status in the hw tasks table from {'unchecked' if not is_checked else 'checked'} to {'checked' if is_checked else 'unchecked'}")
+            print(f"[LOG] Changing status in the hw tasks table from {'unchecked' if not is_checked else 'checked'} to {'checked' if is_checked else 'unchecked'}")
             self.db.update_hw_task_status(self.task_id, int(is_checked))
             if is_checked:
                 self.setStyleSheet("text-decoration: line-through; color: gray")
             else:
                 self.setStyleSheet("")
 
+    def contextMenuEvent(self, event):
+        menu = QMenu (self)
+
+        work_date_action = QAction("קביעת תאריך ביצוע", self)
+        menu.addAction(work_date_action)
+
+        selected_action = menu.exec(event.globalPos())
+        if selected_action == work_date_action:
+            self.set_work_date()
+
+    def set_work_date(self):
+        date_dialog = QDialog(self)
+        date_dialog.setWindowTitle("בחירת תאריך ביצוע")
+
+        layout = QVBoxLayout(date_dialog)
+        layout.addWidget(QLabel("בחירת תאריך ביצוע משימה:"))
+        
+        date_chooser = QDateTimeEdit()
+        date_chooser.setCalendarPopup(True)
+        date_chooser.setDateTime(QDateTime.currentDateTime())
+        date_chooser.setDisplayFormat("HH:mm dd/MM/yyyy")
+        date_chooser.setLayoutDirection(Qt.RightToLeft)
+        date_chooser.setAlignment(Qt.AlignRight)
+        date_chooser.calendarWidget().setLayoutDirection(Qt.RightToLeft)
+        layout.addWidget(date_chooser)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(buttons)
+
+        buttons.accepted.connect(date_dialog.accept)
+        buttons.rejected.connect(date_dialog.reject)
         
 
+        if date_dialog.exec() == QDialog.Accepted:
+            chosen_datetime = date_chooser.dateTime().toString("HH:mm dd-MM-yyyy")
+            self.show_working_date(chosen_datetime)
+
+            self.db.update_working_date(self.task_id, chosen_datetime)
+
+    def show_working_date(self, working_date_str: str):
+        print("show_working_date got:", working_date_str)
+
+        if not working_date_str:
+            print(f"[WARN] - 'show_working_date' : exited because working_date_str is None.")
+            return
+        dt = QDateTime.fromString(working_date_str, "HH:mm dd-MM-yyyy")
+        if not dt.isValid():
+            print(f"[LOG] - 'show_working_date': dt: {dt}")
+            print(f"[WARN] - 'show_working_date' : exited because dt is not valid.")
+            return
+        
+        chosen_date_str = dt.date().toString("dd/MM/yyyy")
+    
+        self.doing_date.setText(f"עושה ב: {chosen_date_str}")
+        self.doing_date.setVisible(True)
+        print(f"the doing_date status: {self.doing_date.isVisible()}")
+        print("widget sizeHint: ", self.sizeHint())
+
+        self.adjustSize()
+        self.updateGeometry()
+
+        p = self.parentWidget()
+        while p and not isinstance(p, QListWidget):
+            p = p.parentWidget()
+        if not p:
+            return
+        lw = p
+        for row in range(lw.count()):
+            item = lw.item(row)
+            if lw.itemWidget(item) is self:
+                item.setSizeHint(self.sizeHint())
+                break
+        lw.doItemsLayout()
+        lw.clearSelection()

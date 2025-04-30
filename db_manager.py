@@ -34,7 +34,8 @@ class AppDB:
                 task TEXT NOT NULL,
                 due_date TEXT,
                 status INTEGER DEFAULT 0,
-                course_num TEXT NOT NULL
+                course_num TEXT NOT NULL,
+                working_date TEXT
             )    
         """)
 
@@ -97,23 +98,23 @@ class AppDB:
     # =============== HW TASKS METHODS ===============
 
     def add_hw_task(self, text, due_date, course):
-        print(f" [DB-LOG] Adding HW task in course {course} to the hw tasks table...")
+        print(f"[DB-LOG] Adding HW task in course {course} to the hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO hw_tasks_table (task, due_date, course_num) VALUES (?,?,?)", (text, due_date, course))
         task_id = cursor.lastrowid
-        print(f" [DB-LOG] HW task in course {course} was added to the hw tasks table with the id {task_id}")
+        print(f"[DB-LOG] HW task in course {course} was added to the hw tasks table with the id {task_id}")
         conn.commit()
         conn.close
 
         return task_id
     
     def remove_task(self, task_id):
-        print(f" [DB-LOG] Deleting HW task {task_id} from the hw tasks table...")
+        print(f"[DB-LOG] Deleting HW task {task_id} from the hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM hw_tasks_table WHERE id = ?", (task_id,))
-        print(f" [DB-LOG] Deleted HW task {task_id} from the hw tasks table.")
+        print(f"[DB-LOG] Deleted HW task {task_id} from the hw tasks table.")
         conn.commit()
         conn.close()
 
@@ -130,13 +131,25 @@ class AppDB:
         return tasks
 
     def update_hw_task_status(self, task_id, is_checked):
-        print(f" [DB-LOG] Updating HW task {task_id} status in hw tasks table...")
+        print(f"[DB-LOG] Updating HW task {task_id} status in hw tasks table...")
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
         cursor.execute("UPDATE hw_tasks_table SET status = ? WHERE id =?", (is_checked, task_id))
         conn.commit()
         conn.close()
-        print(f" [DB-LOG] Updated task {task_id} to status {is_checked}")
+        print(f"[DB-LOG] Updated task {task_id} to status {is_checked}")
+
+    def update_working_date(self, task_id, date):
+        print(f"[DB-LOG] Updating working date for task with id: {task_id} ...")
+        conn = self._connect()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE hw_tasks_table SET working_date = ? WHERE id =?", (date, task_id))
+        print(f"[DB-LOG] Updated working date: {date} for task with id: {task_id}.")
+        tasks = cursor.fetchall()
+        conn.commit()
+        conn.close()
+        return tasks
+
 
 
     # =============== EVENT METHODS    ===============
@@ -251,11 +264,11 @@ class AppDB:
         return events
 
     def update_event_layer(self, event_id, new_layer):
-        print(f" [DB-LOG] Updating event with id: {event_id} layer in events table...")
+        print(f"[DB-LOG] Updating event with id: {event_id} layer in events table...")
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("UPDATE events_table SET layer = ? WHERE id =?", (new_layer, event_id))
-        print(f" [DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_layer}'")
+        print(f"[DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_layer}'")
         events = cursor.fetchall()
         conn.commit()
         conn.close()
@@ -266,7 +279,7 @@ class AppDB:
         conn = self._connect()
         cursor = conn.cursor()
         cursor.execute("UPDATE events_table SET block_color = ? WHERE id =?", (new_color, event_id))
-        print(f" [DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_color}'")
+        print(f"[DB-LOG] Updated event with id: {event_id} layer in events table to layer: '{new_color}'")
         events = cursor.fetchall()
         conn.commit()
         conn.close()
